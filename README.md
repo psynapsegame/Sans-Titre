@@ -1,7 +1,7 @@
 # Nuée
 
-**Un voyage de mille ailes.** Jeu mobile à un doigt, en 3D temps réel : tu guides une nuée d'oiseaux migrateurs
-au-dessus de la mer, à travers cinq ciels.
+**Un voyage de mille ailes.** Jeu mobile à un doigt, vu de dessus : tu guides une nuée d'oiseaux migrateurs
+à travers cinq ciels.
 
 - **Pose le doigt** n'importe où et glisse : la nuée te suit et **se resserre** (pour franchir les gorges).
 - **Lâche** : la nuée **se disperse** (pour esquiver le faucon).
@@ -18,88 +18,76 @@ au-dessus de la mer, à travers cinq ciels.
 
 ## Direction artistique et rendu
 
-Le jeu est rendu en WebGL 2 avec three.js. La simulation (2D, déterministe) est séparée du rendu.
+Rendu 2D stylisé (Canvas 2D), pensé pour rester lisible sur un petit écran : ciels en dégradé, silhouettes nettes.
 
-- **Mer** : matériau PBR, trois couches de vagues (carte de normales), reflets du ciel, éclats du soleil,
-  anti-crénelage spéculaire au loin.
-- **Roche** : falaises des gorges générées le long du parcours, aiguilles modélisées dans Blender ; textures
-  PBR photogrammétriques Poly Haven (couleur et normales), assombries et humides vers la ligne d'eau.
-- **Ciel et lumière** : un panorama HDR réel par chapitre, utilisé comme fond et comme éclairage d'ambiance ;
-  la brume prend la couleur du ciel à l'horizon.
-- **Ombres et végétation** : ombres portées du soleil (carte d'ombres) sur la mer, les falaises et la nuée ;
-  plateaux habillés de conifères, buissons et blocs rocheux instanciés, enneigés dans la nuit boréale.
-- **Oiseaux** : modèle 3D original, instancié (jusqu'à 480), battement d'ailes et inclinaison en virage calculés
-  dans le vertex shader.
-- **Atmosphère** : nuages volumétriques pré-rendus (Blender Cycles), brumes basses, pluie, éclairs, aurore,
-  étoiles, lune.
-- **Post-traitement** : rendu HDR, bloom, tone mapping filmique ACES ; la qualité s'adapte à l'appareil
-  (résolution, puis ombres, puis bloom).
+- **Oiseaux, faucon, plumes, conifères, aiguilles rocheuses** : sprites rendus à partir de modèles 3D originaux
+  (Blender Cycles), puis teintés par le jeu selon le chapitre et le plumage. Les oiseaux ont un vrai cycle de
+  battement d'ailes (8 images).
+- **Nuages et orages** : nuages volumétriques pré-rendus, teintés par chapitre.
+- **Falaises** : texture de roche en aplats, liseré clair, ombre portée, bosquets avec ombres.
+- Une version 3D temps réel a été essayée puis abandonnée (moins lisible, incompatible avec certains
+  téléphones) ; elle reste consultable sous l'étiquette git `rendu-3d`.
 
 Origine et licence de chaque asset : [`assets/CREDITS.md`](assets/CREDITS.md).
 
 ## Lancer le jeu
 
+Aucune compilation n'est nécessaire : c'est un site statique.
+
 ```bash
-npm install          # three.js et esbuild
 npm start            # sert le dossier sur http://localhost:8080
 ```
 
-Pour une version à héberger (un seul fichier HTML + le dossier `assets/`) :
-
-```bash
-npm run build        # produit dist/
-```
-
-Héberge `dist/` sur n'importe quel serveur statique en HTTPS (GitHub Pages, Netlify…), puis sur le téléphone :
+Pour jouer sur un téléphone, héberge le dossier (ou `dist/` après `npm run build`) en HTTPS, puis :
 
 - **Android (Chrome)** : menu ⋮ → *Installer l'application*
 - **iPhone (Safari)** : Partager → *Sur l'écran d'accueil*
 
-Le jeu s'ouvre alors en plein écran et fonctionne hors ligne.
+## Construire
+
+```bash
+npm install
+npm run build        # dist/index.html : page autonome (code, styles, polices et sprites intégrés)
+```
 
 ## Publier sur les stores (Capacitor)
 
 ```bash
 npm run cap:init     # installe Capacitor et crée les projets android/ et ios/
 npm run cap:sync     # reconstruit dist/ et le copie dans les projets natifs
-npx cap open android # puis Android Studio → Generate Signed Bundle
-npx cap open ios     # puis Xcode → Archive (Mac requis)
 ```
 
-Reste à fournir pour une mise en ligne : comptes développeur Google Play / Apple, signature, captures d'écran
-et fiche de store, politique de confidentialité (le jeu ne collecte aucune donnée).
+Reste à fournir : comptes développeur Google Play / Apple, signature, fiche de store, politique de
+confidentialité (le jeu ne collecte aucune donnée).
 
-## Refaire les assets
-
-Les fichiers de `assets/` sont versionnés ; cette étape n'est utile que pour les modifier.
+## Refaire les sprites
 
 ```bash
-tools/assets/fetch.sh sources/                                  # télécharge textures et HDRI (licences libres)
-pip install bpy opencv-python-headless pillow numpy             # Blender en module Python
-python tools/assets/make_clouds.py -- sources/clouds 512 80     # nuages volumétriques (Cycles)
-python tools/assets/make_moon.py -- sources/moon.png            # lune (Cycles)
-python tools/assets/make_models.py -- assets/models             # oiseaux, plume, roches, végétation (GLB)
-python tools/assets/process.py sources assets                   # textures, atlas, ciels
-npm start & node tools/make-keyart.mjs                          # visuels d'interface et icônes (Playwright)
+pip install bpy pillow                                             # Blender en module Python
+python tools/assets/make_models.py -- art/models                   # modèles 3D (GLB)
+python tools/assets/make_clouds.py -- rendus/clouds 512 80         # nuages volumétriques
+python tools/assets/make_sprites.py -- art/models rendus           # sprites vus de dessus
+python tools/assets/pack_sprites.py rendus art/src assets/sprites  # planches prêtes pour le jeu
 ```
 
 ## Organisation
 
 ```
-index.html            structure des écrans
-styles.css            interface
-src/main.js           navigation, progression, boucle principale
-src/game.js           simulation d'un vol (aucun rendu)
-src/render3d.js       moteur de rendu 3D (three.js) et direction artistique par chapitre
-src/flock.js          la nuée (boids : séparation, alignement, attraction)
-src/levels.js         chapitres, niveaux, plumages, générateur de parcours
-src/audio.js          bande-son synthétisée
-src/save.js           sauvegarde locale
-assets/               textures, ciels, modèles 3D, visuels d'interface
-tools/                empaquetage, production des assets
+index.html          structure des écrans
+styles.css          interface
+src/main.js         navigation, progression, boucle principale
+src/game.js         simulation d'un vol et rendu
+src/sprites.js      chargement et teinte des sprites
+src/flock.js        la nuée (boids : séparation, alignement, attraction)
+src/levels.js       chapitres, niveaux, plumages, générateur de parcours
+src/audio.js        bande-son synthétisée
+src/save.js         sauvegarde locale
+assets/sprites/     sprites du jeu
+art/                sources : modèles 3D, texture, atlas de nuages
+tools/              empaquetage, production des sprites
 ```
 
 ## Technologies
 
-three.js (WebGL 2), JavaScript natif en modules ES, Web Audio, PWA (manifest + service worker), esbuild,
-Capacitor pour l'enveloppe native, Blender pour la production des assets.
+JavaScript natif (modules ES), Canvas 2D, Web Audio, PWA (manifest + service worker), esbuild, Capacitor pour
+l'enveloppe native, Blender pour la production des sprites. Aucune dépendance à l'exécution.

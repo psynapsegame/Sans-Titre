@@ -1,6 +1,12 @@
 // Service worker : met le jeu en cache pour qu'il se lance hors connexion.
-const CACHE = 'nuee-v2';
-const SHELL = ['./', 'index.html', 'styles.css', 'manifest.webmanifest'];
+const CACHE = 'nuee-v3';
+const SHELL = [
+  './', 'index.html', 'styles.css', 'manifest.webmanifest',
+  'src/main.js', 'src/game.js', 'src/flock.js', 'src/levels.js', 'src/audio.js', 'src/save.js', 'src/util.js', 'src/sprites.js',
+  'assets/icon-192.png', 'assets/icon-512.png', 'assets/icon-180.png',
+  'assets/fonts/fraunces-latin-400-italic.woff2', 'assets/fonts/fraunces-latin-600-normal.woff2',
+  'assets/fonts/outfit-latin-400-normal.woff2', 'assets/fonts/outfit-latin-600-normal.woff2',
+];
 
 self.addEventListener('install', (e) => {
   // addAll échoue si un fichier manque (ex. version empaquetée) : on tolère les absents

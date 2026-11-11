@@ -1,12 +1,13 @@
 import { CHAPTERS, SKINS, levelId } from './levels.js';
 import { Game } from './game.js';
-import { Renderer3D } from './render3d.js';
 import { audio, buzz } from './audio.js';
 import { save, loadSave, persist } from './save.js';
+import { rgba } from './util.js';
+import { loadSprites, tinted, BIRD_FRAMES } from './sprites.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), cv = $('c');
-const SCREENS = ['title', 'map', 'skins', 'pause', 'result', 'credits'];
+const SCREENS = ['title', 'map', 'skins', 'pause', 'result'];
 const TOTAL_STARS = CHAPTERS.length * 4 * 3;
 const star = (on) => `<svg class="${on ? 'on' : ''}"><use href="#i-star"/></svg>`;
 
@@ -16,16 +17,7 @@ audio.on = save.sound;
 let screen = 'title', paused = false, current = null, hintTimer = 0, introTimer = 0;
 let dpr = Math.min(window.devicePixelRatio || 1, 2), slow = 0;
 
-let renderer;
-try { renderer = new Renderer3D(cv); } catch (err) {
-  // WebGL 2 indisponible : on le dit clairement plutôt que d'afficher un écran vide
-  console.error(err);
-  $('loadMsg').textContent = 'Ce navigateur ne prend pas en charge le rendu 3D (WebGL 2). Essaie avec une version récente de Chrome ou de Safari.';
-  throw err;
-}
-let ready = false;
-
-const game = new Game({
+const game = new Game(cv, {
   onHud(n, got, prog, m) {
     $('hudBirds').textContent = n;
     $('hudFeathers').textContent = got;
@@ -39,12 +31,7 @@ const game = new Game({
     el.textContent = text; el.classList.add('on');
     hintTimer = setTimeout(() => el.classList.remove('on'), 5200);
   },
-  onPop(text, x, y) {
-    const p = renderer.project(x, y), el = document.createElement('span');
-    el.className = 'pop'; el.textContent = text; el.style.left = `${p.x}px`; el.style.top = `${p.y}px`;
-    $('pops').appendChild(el);
-    setTimeout(() => el.remove(), 1200);
-  },
+  onHurt(v) { $('hurt').style.opacity = v; },
   onEnd: showResult,
 });
 
@@ -80,21 +67,10 @@ function refreshTitle() {
   $('btnSound2').textContent = `Son : ${save.sound ? 'activé' : 'coupé'}`;
 }
 
-/** Charge le ciel du chapitre si besoin (voile de transition), puis lance la simulation. */
-let sceneToken = 0;
-async function enter(opts) {
-  const token = ++sceneToken, veil = $('veil');
-  if (renderer.ci !== opts.ci) { veil.classList.add('on'); await new Promise((r) => setTimeout(r, 260)); }
-  await renderer.setChapter(opts.ci, save.skin, CHAPTERS[opts.ci].ink);
-  if (token !== sceneToken) return;
-  game.start({ ...opts, skin: save.skin });
-  veil.classList.remove('on');
-}
-
 function goTitle() {
   const nx = nextLevel() || { ci: CHAPTERS.length - 1 };
   current = null; paused = false;
-  enter({ mode: 'attract', ci: nx.ci });
+  game.start({ mode: 'attract', ci: nx.ci, skin: save.skin });
   setAccent(nx.ci);
   refreshTitle();
   show('title');
@@ -109,7 +85,7 @@ function setAccent(ci) {
 function play(mode, ci = 0, li = 0) {
   current = { mode, ci, li };
   paused = false;
-  enter({ mode, ci, li });
+  game.start({ mode, ci, li, skin: save.skin });
   setAccent(ci);
   $('hint').classList.remove('on');
   const endless = mode === 'endless';
@@ -144,20 +120,43 @@ function buildMap() {
       return `<button class="lvl${isNext ? ' next' : ''}" data-l="${ci}-${li}" ${ok ? '' : 'disabled'} aria-label="${l.name}">
         <b>${ok ? li + 1 : '<svg><use href="#i-lock"/></svg>'}</b><span class="s">${star(st > 0)}${star(st > 1)}${star(st > 2)}</span></button>`;
     }).join('');
-    return `<article class="chapter${open ? '' : ' locked'}" style="background-image:url(assets/ui/ch${ci}.jpg)">
+    return `<article class="chapter${open ? '' : ' locked'}" style="background:linear-gradient(165deg,${ch.sky[0]},${ch.sky[1]} 42%,${ch.sky[2]} 78%,${ch.sky[3]})">
       <span class="num">${ch.num}</span><h3>${ch.name}</h3><p>${ch.blurb}</p><div class="levels">${lv}</div></article>`;
   }).join('');
 }
 
 /* ---------- plumages ---------- */
+function drawSkinPreview(c, sk) {
+  const ch = game.ch, w = (c.width = 320), h = (c.height = 192), g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, w, h);
+  ch.sky.forEach((col, i) => gr.addColorStop(i / (ch.sky.length - 1), col));
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  const colors = sk.colors || [ch.ink];
+  for (let i = 0; i < 40; i++) {
+    const a = i * 2.39996, r = 10 + Math.sqrt(i) * 12, x = w / 2 + Math.cos(a) * r * 1.5, y = h / 2 + Math.sin(a) * r * 0.75;
+    const d = a + 1.75, ux = Math.cos(d), uy = Math.sin(d);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    if (sk.glow) {
+      const rg = g.createRadialGradient(x, y, 0, x, y, 20);
+      rg.addColorStop(0, rgba(sk.glow, 0.45)); rg.addColorStop(1, rgba(sk.glow, 0));
+      g.globalCompositeOperation = 'lighter'; g.fillStyle = rg; g.fillRect(x - 20, y - 20, 40, 40); g.globalCompositeOperation = 'source-over';
+    }
+    const sheet = tinted('birds', colors[i % colors.length], 1, sk.glow ? 0 : 0.07), fw = sheet.width / BIRD_FRAMES;
+    g.setTransform(-uy, ux, -ux, -uy, x, y);
+    g.drawImage(sheet, ((i * 3) % BIRD_FRAMES) * fw, 0, fw, sheet.height, -17, -17, 34, 34);
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
 function buildSkins() {
   $('sFeathers').textContent = save.feathers;
   const grid = $('skinGrid');
   grid.innerHTML = SKINS.map((sk) => {
     const own = save.owned.includes(sk.id), act = save.skin === sk.id, poor = !own && save.feathers < sk.price;
     const label = act ? 'Portée' : own ? 'Choisir' : `<svg><use href="#i-feather"/></svg>${sk.price}`;
-    return `<button class="skin${act ? ' active' : ''}${poor ? ' poor' : ''}" data-s="${sk.id}"><img src="assets/ui/skin-${sk.id}.jpg" alt="" loading="lazy"><div><b>${sk.name}</b><small>${sk.desc}</small><em>${label}</em></div></button>`;
+    return `<button class="skin${act ? ' active' : ''}${poor ? ' poor' : ''}" data-s="${sk.id}"><canvas></canvas><div><b>${sk.name}</b><small>${sk.desc}</small><em>${label}</em></div></button>`;
   }).join('');
+  grid.querySelectorAll('.skin').forEach((el, i) => drawSkinPreview(el.querySelector('canvas'), SKINS[i]));
 }
 
 /* ---------- résultat ---------- */
@@ -212,7 +211,6 @@ const tap = (id, fn) => $(id).addEventListener('click', () => { audio.unlock(); 
 tap('btnPlay', () => { const nx = nextLevel(); if (nx) play('level', nx.ci, nx.li); else play('endless', CHAPTERS.length - 1); });
 tap('btnMap', () => { buildMap(); show('map'); });
 tap('btnSkins', () => { buildSkins(); show('skins'); });
-tap('btnCredits', () => show('credits'));
 tap('btnEndless', () => {
   if (endlessOpen()) play('endless', Math.min(CHAPTERS.length - 1, Math.floor(totalStars() / 12)));
   else game.hooks.onHint('Termine le chapitre I pour ouvrir la migration sans fin.');
@@ -245,7 +243,7 @@ $('skinGrid').addEventListener('click', (e) => {
     save.feathers -= sk.price; save.owned.push(sk.id); audio.win();
   } else audio.tap();
   save.skin = sk.id; persist();
-  renderer.setSkin(save.skin, CHAPTERS[game.ci].ink);
+  game.start({ mode: 'attract', ci: game.ci, skin: save.skin });
   buildSkins();
 });
 
@@ -263,60 +261,36 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (screen 
 /* ---------- boucle ---------- */
 function resize() {
   const r = stage.getBoundingClientRect();
-  if (r.width && r.height && ready) renderer.resize(r.width, r.height, dpr);
+  if (r.width && r.height) game.resize(r.width, r.height, dpr);
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
 resize();
 
-let last = performance.now(), hurtV = -1, flashV = -1;
+let last = performance.now();
 function frame(now) {
   const raw = (now - last) / 1000;
   last = now;
-  let dt = 0;
   if (!paused && !window.__nuee.freeze) {
-    dt = Math.min(raw, 0.034);
-    game.update(dt);
+    game.update(Math.min(raw, 0.034));
     // qualité adaptative : on baisse la résolution si l'appareil peine
-    if (raw > 0.027 && raw < 0.2) {
-      if (++slow > 50) {
-        slow = 0;
-        // paliers de qualité : résolution, puis ombres, puis résolution minimale, puis bloom
-        if (dpr > 1.5) { dpr = 1.5; resize(); }
-        else if (renderer.sun.castShadow) renderer.sun.castShadow = false;
-        else if (dpr > 1) { dpr = 1; resize(); }
-        else renderer.bloom.enabled = false;
-      }
-    }
+    if (raw > 0.027 && raw < 0.2) { if (++slow > 50 && dpr > 1) { dpr = Math.max(1, dpr - 0.5); slow = 0; resize(); } }
     else slow = Math.max(0, slow - 2);
   }
-  if (!window.__nuee.noRender) renderer.frame(game, dt);
-  const hv = Math.round(Math.min(0.6, game.hurt * 0.6) * 20) / 20, fv = Math.round(game.flash * 20) / 20;
-  if (hv !== hurtV) $('hurt').style.opacity = hurtV = hv;
-  if (fv !== flashV) $('flash').style.opacity = flashV = fv;
+  game.render();
   requestAnimationFrame(frame);
 }
 
-window.__nuee = { game, save, play, renderer };
-
-(async function boot() {
-  const bar = $('loadBar');
-  try {
-    await renderer.load((k) => { bar.style.transform = `scaleX(${k})`; });
-    ready = true;
-    resize();
-    const nx = nextLevel() || { ci: CHAPTERS.length - 1 };
-    await renderer.setChapter(nx.ci, save.skin, CHAPTERS[nx.ci].ink);
-    goTitle();
-    requestAnimationFrame(frame);
-    $('loader').classList.add('done');
-    setTimeout(() => { $('loader').hidden = true; }, 900);
-  } catch (err) {
-    console.error(err);
-    $('loadMsg').textContent = 'Le chargement a échoué. Vérifie ta connexion puis recharge la page.';
-  }
-})();
-
+window.__nuee = { game, save, play };
+loadSprites((k) => { $('loadBar').style.transform = `scaleX(${k})`; }).then(() => {
+  goTitle();
+  requestAnimationFrame(frame);
+  $('loader').classList.add('done');
+  setTimeout(() => { $('loader').hidden = true; }, 700);
+}).catch((err) => {
+  console.error(err);
+  $('loadMsg').textContent = 'Le chargement a échoué. Vérifie ta connexion puis recharge la page.';
+});
 if (document.fonts?.ready) document.fonts.ready.then(() => stage.classList.add('fonts'));
 
 if (!window.__NUEE_SINGLE__ && 'serviceWorker' in navigator && location.protocol === 'https:') {

@@ -9,7 +9,7 @@ export const CHAPTERS = [
     id: 'aube', num: 'I', name: 'Aube sur les marais', blurb: 'Le premier matin du voyage.',
     sky: ['#232a5c', '#7d4f86', '#ee8c6c', '#ffd7a0'],
     sun: { x: 0.7, y: 0.78, r: 44, core: '#fff3d0', glow: '#ffb169' },
-    cloud: '#ffe1c2', rock: ['#2a2048', '#40305f', '#f9a983'], ink: '#191330',
+    cloud: '#ffe1c2', rock: ['#2a2048', '#40305f', '#f9a983'], ink: '#191330', veg: ['#b9a6c4', 0],
     accent: '#ffd08c', storm: '#3a2e55', stars: 0, aurora: false, root: 174.6,
     speed: 82, start: 36,
     levels: [
@@ -23,7 +23,7 @@ export const CHAPTERS = [
     id: 'gorges', num: 'II', name: 'Gorges d’ocre', blurb: 'La roche se referme sur le ciel.',
     sky: ['#1f6f9c', '#6fb7c9', '#cfe6cf', '#f7e6b4'],
     sun: { x: 0.26, y: 0.2, r: 34, core: '#fffbe6', glow: '#fff0a8' },
-    cloud: '#ffffff', rock: ['#8a3f2c', '#b65a3a', '#ffd9a1'], ink: '#14202b',
+    cloud: '#ffffff', rock: ['#8a3f2c', '#b65a3a', '#ffd9a1'], ink: '#14202b', veg: ['#f0d9a0', 0.05],
     accent: '#fff2b8', storm: '#4a5a68', stars: 0, aurora: false, root: 196,
     speed: 94, start: 46,
     levels: [
@@ -37,7 +37,7 @@ export const CHAPTERS = [
     id: 'orage', num: 'III', name: 'Front d’orage', blurb: 'Le ciel gronde, le vent se lève.',
     sky: ['#141a2b', '#2c3a50', '#5b6b78', '#a3a69a'],
     sun: { x: 0.5, y: 0.9, r: 60, core: '#e9efe6', glow: '#aeb9b0' },
-    cloud: '#aab6c2', rock: ['#0e1320', '#1a2334', '#8fa3b8'], ink: '#f1f4f7',
+    cloud: '#aab6c2', rock: ['#0e1320', '#1a2334', '#8fa3b8'], ink: '#f1f4f7', veg: ['#8ea2b4', 0],
     accent: '#d6e6ff', storm: '#0d111b', stars: 0, aurora: false, root: 146.8,
     speed: 102, start: 56,
     levels: [
@@ -51,7 +51,7 @@ export const CHAPTERS = [
     id: 'mer', num: 'IV', name: 'Mer du soir', blurb: 'Les récifs s’embrasent au couchant.',
     sky: ['#22163f', '#7a2f6a', '#e25d63', '#ffb765'],
     sun: { x: 0.36, y: 0.84, r: 56, core: '#ffe9b0', glow: '#ff8a55' },
-    cloud: '#ffb08f', rock: ['#1c1030', '#34184a', '#ff9d6e'], ink: '#4a3140',
+    cloud: '#ffb08f', rock: ['#1c1030', '#34184a', '#ff9d6e'], ink: '#140b24', veg: ['#b98a8a', 0],
     accent: '#ffc27a', storm: '#2a1640', stars: 0.35, aurora: false, root: 164.8,
     speed: 110, start: 66,
     levels: [
@@ -65,7 +65,7 @@ export const CHAPTERS = [
     id: 'boreale', num: 'V', name: 'Nuit boréale', blurb: 'Au bout du monde, le refuge.',
     sky: ['#040818', '#0a1c3a', '#0f3a4c', '#1b5a55'],
     sun: { x: 0.74, y: 0.16, r: 22, core: '#f4fbff', glow: '#9fd8ff' },
-    cloud: '#5fa8b8', rock: ['#02040d', '#081326', '#7ff0d0'], ink: '#dffff4',
+    cloud: '#5fa8b8', rock: ['#02040d', '#081326', '#7ff0d0'], ink: '#dffff4', veg: ['#bfe0f0', 0.55],
     accent: '#8ff5d2', storm: '#050912', stars: 1, aurora: true, root: 130.8,
     speed: 118, start: 76,
     levels: [
