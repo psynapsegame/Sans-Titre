@@ -26,11 +26,14 @@ Le jeu est rendu en WebGL 2 avec three.js. La simulation (2D, déterministe) est
   PBR photogrammétriques Poly Haven (couleur et normales), assombries et humides vers la ligne d'eau.
 - **Ciel et lumière** : un panorama HDR réel par chapitre, utilisé comme fond et comme éclairage d'ambiance ;
   la brume prend la couleur du ciel à l'horizon.
+- **Ombres et végétation** : ombres portées du soleil (carte d'ombres) sur la mer, les falaises et la nuée ;
+  plateaux habillés de conifères, buissons et blocs rocheux instanciés, enneigés dans la nuit boréale.
 - **Oiseaux** : modèle 3D original, instancié (jusqu'à 480), battement d'ailes et inclinaison en virage calculés
   dans le vertex shader.
 - **Atmosphère** : nuages volumétriques pré-rendus (Blender Cycles), brumes basses, pluie, éclairs, aurore,
   étoiles, lune.
-- **Post-traitement** : rendu HDR, bloom, tone mapping filmique ACES, résolution adaptative.
+- **Post-traitement** : rendu HDR, bloom, tone mapping filmique ACES ; la qualité s'adapte à l'appareil
+  (résolution, puis ombres, puis bloom).
 
 Origine et licence de chaque asset : [`assets/CREDITS.md`](assets/CREDITS.md).
 
@@ -75,7 +78,7 @@ tools/assets/fetch.sh sources/                                  # télécharge t
 pip install bpy opencv-python-headless pillow numpy             # Blender en module Python
 python tools/assets/make_clouds.py -- sources/clouds 512 80     # nuages volumétriques (Cycles)
 python tools/assets/make_moon.py -- sources/moon.png            # lune (Cycles)
-python tools/assets/make_models.py -- assets/models             # oiseaux, plume, aiguilles (GLB)
+python tools/assets/make_models.py -- assets/models             # oiseaux, plume, roches, végétation (GLB)
 python tools/assets/process.py sources assets                   # textures, atlas, ciels
 npm start & node tools/make-keyart.mjs                          # visuels d'interface et icônes (Playwright)
 ```

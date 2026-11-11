@@ -281,8 +281,11 @@ function frame(now) {
     if (raw > 0.027 && raw < 0.2) {
       if (++slow > 50) {
         slow = 0;
-        if (dpr > 1) { dpr = Math.max(1, dpr - 0.5); resize(); }
-        else renderer.bloom.enabled = false; // dernier recours sur les appareils modestes
+        // paliers de qualité : résolution, puis ombres, puis résolution minimale, puis bloom
+        if (dpr > 1.5) { dpr = 1.5; resize(); }
+        else if (renderer.sun.castShadow) renderer.sun.castShadow = false;
+        else if (dpr > 1) { dpr = 1; resize(); }
+        else renderer.bloom.enabled = false;
       }
     }
     else slow = Math.max(0, slow - 2);

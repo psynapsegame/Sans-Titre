@@ -275,3 +275,90 @@ def make_stack(idx, seed):
 
 for i, sd in enumerate((1.7, 5.3, 9.9)):
     make_stack(i, sd)
+
+
+# ---------------------------------------------------------------- végétation et rochers des plateaux
+def make_pine(name, seed):
+    """Conifère stylisé : tronc et quatre étages de ramure, facettes franches, couleurs par sommet."""
+    new_scene()
+    bm = bmesh.new()
+    col = bm.loops.layers.color.new('Col')
+    rnd = lambda k: noise.noise(Vector((k * 3.17 + seed, seed * 1.3, k * 0.71)))
+
+    def tri(pts, cols):
+        f = bm.faces.new([bm.verts.new(p) for p in pts])
+        for l, c in zip(f.loops, cols): l[col] = (c[0], c[1], c[2], 1.0)
+
+    bark, bark2 = (0.16, 0.11, 0.08), (0.24, 0.17, 0.12)
+    n = 6
+    for k in range(n):
+        a0, a1 = k / n * math.tau, (k + 1) / n * math.tau
+        b0, b1 = Vector((math.cos(a0) * 0.05, math.sin(a0) * 0.05, 0)), Vector((math.cos(a1) * 0.05, math.sin(a1) * 0.05, 0))
+        t0, t1 = b0 * 0.6 + Vector((0, 0, 0.42)), b1 * 0.6 + Vector((0, 0, 0.42))
+        tri([b0, b1, t1], [bark, bark, bark2]); tri([b0, t1, t0], [bark, bark2, bark2])
+    tiers, seg = 4, 8
+    dark, mid, light = (0.045, 0.12, 0.075), (0.085, 0.2, 0.11), (0.17, 0.3, 0.15)
+    for t in range(tiers):
+        z0 = 0.2 + t * 0.2
+        rad = 0.36 - t * 0.075
+        h = 0.36 - t * 0.02
+        apex = Vector((rnd(t + 20) * 0.04, rnd(t + 30) * 0.04, z0 + h))
+        ring = []
+        for k in range(seg):
+            a = (k + 0.5 * (t % 2)) / seg * math.tau
+            rr = rad * (1 + 0.22 * rnd(t * 9 + k))
+            ring.append(Vector((math.cos(a) * rr, math.sin(a) * rr, z0 - 0.05 - 0.06 * abs(rnd(t * 5 + k + 50)))))
+        for k in range(seg):
+            a, b = ring[k], ring[(k + 1) % seg]
+            shade = 0.85 + 0.3 * rnd(t * 13 + k + 80)
+            c0 = tuple(v * shade for v in (dark if k % 2 else mid))
+            tri([a, b, apex], [c0, c0, light])
+            tri([b, a, Vector((0, 0, z0 + 0.02))], [dark, dark, dark])  # dessous sombre de l'étage
+    finish(bm, name, smooth=False)
+    export(name)
+
+
+def make_bush(name, seed):
+    new_scene()
+    bm = bmesh.new()
+    col = bm.loops.layers.color.new('Col')
+    bmesh.ops.create_icosphere(bm, subdivisions=2, radius=0.5)
+    for v in bm.verts:
+        d = 1 + 0.5 * noise.noise(v.co * 3.1 + Vector((seed, 0, 0))) + 0.2 * noise.noise(v.co * 7.0)
+        v.co = Vector((v.co.x * d, v.co.y * d, max(-0.02, v.co.z * 0.62 * d + 0.18)))
+    for f in bm.faces:
+        s = 0.8 + 0.4 * noise.noise(f.calc_center_median() * 4 + Vector((0, seed, 0)))
+        up = max(0.0, f.normal.z)
+        c = [(0.3 + 0.25 * up) * s, (0.42 + 0.3 * up) * s, (0.2 + 0.12 * up) * s]
+        for l in f.loops: l[col] = (c[0], c[1], c[2], 1.0)
+    finish(bm, name, smooth=False)
+    export(name)
+
+
+def make_rock(name, seed):
+    """Bloc rocheux : icosphère déplacée par un bruit fractal, UV sphériques pour les textures PBR en tuiles."""
+    new_scene()
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new('UVMap')
+    bmesh.ops.create_icosphere(bm, subdivisions=3, radius=1.0)
+    for v in bm.verts:
+        p = v.co.normalized()
+        d = 1 + 0.32 * fbm(p * 1.3 + Vector((seed, 0, 0)), 4) + 0.1 * noise.noise(p * 4.1 + Vector((0, seed, 0)))
+        # facettes : écrase le long de quelques plans de fracture
+        for k in range(3):
+            axis = Vector((math.sin(seed * 3 + k * 2.1), math.cos(seed * 2 + k * 1.3), math.sin(seed + k * 4.7) * 0.5)).normalized()
+            d = min(d, 0.86 / max(0.25, p.dot(axis)) if p.dot(axis) > 0.55 else d)
+        v.co = Vector((p.x * d, p.y * d * 0.85, max(-0.25, p.z * d * 0.72)))
+    for f in bm.faces:
+        for l in f.loops:
+            p = l.vert.co
+            l[uv].uv = (math.atan2(p.y, p.x) / math.tau * 2.0, p.z * 0.9 + 0.5)
+    finish(bm, name, smooth=True)
+    export(name)
+
+
+for i, sd in enumerate((2.3, 6.1)):
+    make_pine(f'pine{i}', sd)
+make_bush('bush', 4.4)
+for i, sd in enumerate((1.1, 7.7)):
+    make_rock(f'rock{i}', sd)

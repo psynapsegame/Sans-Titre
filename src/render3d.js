@@ -13,25 +13,31 @@ import { rng, clamp, lerp } from './util.js';
  * Le monde défile vers la caméra ; la caméra reste fixe.
  */
 const HALF = VW / 2, WATER_Y = -175, RIM_Y = 7, BIRD_SCALE = 10.6;
+const MAX_TREE = 560, MAX_BUSH = 320, MAX_ROCK = 240;
 const MAX_BIRDS = 480, MAX_CLOUDS = 150, MAX_GLOW = 420, MAX_SEG = 360, MAX_RING = 48, MAX_STACK = 80, MAX_FEATHER = 48, MAX_DEBRIS = 200;
 
 /** Direction artistique par chapitre : ciel HDR, lumière, brume, eau, roche. */
 export const LOOKS = [
   { sky: 'aube', exposure: 0.62, env: 1.15, sun: { color: '#ffc7a0', intensity: 2.4, el: 12, az: 0.45 }, fog: { color: '#b08aa3', density: 0.00020 },
     water: { color: '#1b2742', rough: 0.1 }, cliff: { map: 'rock_face_diff', tint: '#b3a4a6' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#b9ad9f' },
-    cloud: '#ffd9cf', storm: '#4a4058', bloom: 0.5, sunGlow: null, mist: 0.5 },
+    cloud: '#ffd9cf', storm: '#4a4058', bloom: 0.5, sunGlow: null, mist: 0.5,
+    veg: { trees: 0.8, bushes: 0.5, rocks: 0.5, tint: '#c9bfd0', bush: '#7f8a70', snow: 0 } },
   { sky: 'gorges', exposure: 0.7, env: 1.0, sun: { color: '#fff0d6', intensity: 3.4, el: 30, az: 0.85 }, fog: { color: '#a9c4d2', density: 0.00017, mix: 0.6 },
     water: { color: '#0d4852', rough: 0.07 }, cliff: { map: 'boulder_cracked_diff', tint: '#e0a27c' }, top: { map: 'boulder_cracked_diff', nor: 'aerial_rocks_nor', tint: '#f3d2ac' },
-    cloud: '#ffffff', storm: '#55606c', bloom: 0.4, sunGlow: { color: '#fff3d8', size: 900, power: 5 }, mist: 0.2 },
+    cloud: '#ffffff', storm: '#55606c', bloom: 0.4, sunGlow: { color: '#fff3d8', size: 900, power: 5 }, mist: 0.2,
+    veg: { trees: 0.06, bushes: 0.9, rocks: 0.9, tint: '#e6d9a8', bush: '#e8c27a', snow: 0 } },
   { sky: 'orage', exposure: 0.85, env: 0.95, sun: { color: '#b9c8e6', intensity: 1.3, el: 34, az: -0.7 }, fog: { color: '#4d5a70', density: 0.00032, mix: 0.6 },
     water: { color: '#0f1a2a', rough: 0.2 }, cliff: { map: 'rock_face_diff', tint: '#70788a' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#6d7876' },
-    cloud: '#8a94a6', storm: '#1c212c', bloom: 0.55, sunGlow: null, mist: 0.75, rain: true },
+    cloud: '#8a94a6', storm: '#1c212c', bloom: 0.55, sunGlow: null, mist: 0.75, rain: true,
+    veg: { trees: 0.9, bushes: 0.4, rocks: 0.5, tint: '#9fb4c4', bush: '#5f7570', snow: 0 } },
   { sky: 'mer', exposure: 0.72, env: 1.05, sun: { color: '#ffae6c', intensity: 3.2, el: 8 }, fog: { color: '#c58c84', density: 0.00020 },
     water: { color: '#191a36', rough: 0.085 }, cliff: { map: 'rock_face_diff', tint: '#6f5a66' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#7d6d64' },
-    cloud: '#ffbfa2', storm: '#2c1e3c', bloom: 0.6, sunGlow: { color: '#ffb070', size: 1100, power: 6 }, mist: 0.4 },
+    cloud: '#ffbfa2', storm: '#2c1e3c', bloom: 0.6, sunGlow: { color: '#ffb070', size: 1100, power: 6 }, mist: 0.4,
+    veg: { trees: 0.4, bushes: 0.6, rocks: 0.7, tint: '#d9b0a0', bush: '#8f7058', snow: 0 } },
   { sky: 'boreale', exposure: 1.7, env: 1.3, sun: { color: '#b8d6ff', intensity: 1.0, el: 38, az: -0.5 }, fog: { color: '#0b1828', mix: 0.88, density: 0.00022 },
     water: { color: '#040a15', rough: 0.07 }, cliff: { map: 'rock_face_diff', tint: '#5f7088' }, top: { map: 'aerial_beach_diff', nor: 'aerial_beach_nor', tint: '#e6eff8' },
-    cloud: '#5a8aa6', storm: '#1c2a40', bloom: 0.8, sunGlow: null, mist: 0.5, aurora: true, stars: true, moon: true },
+    cloud: '#5a8aa6', storm: '#1c2a40', bloom: 0.8, sunGlow: null, mist: 0.5, aurora: true, stars: true, moon: true,
+    veg: { trees: 0.85, bushes: 0.2, rocks: 0.5, tint: '#a8c8d8', bush: '#a8c8d8', snow: 0.9 } },
 ];
 
 const FOG_PARS = 'uniform vec3 uFogColor; uniform float uFogDensity;';
@@ -65,6 +71,7 @@ export class Renderer3D {
     const r = (this.r = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', alpha: false }));
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x8090a0, 0.0003);
     this.cam = new THREE.PerspectiveCamera(58, 0.5, 4, 14000);
@@ -86,7 +93,7 @@ export class Renderer3D {
   async load(onProgress) {
     const tl = new THREE.TextureLoader(), gl = new GLTFLoader();
     const names = ['rock_face_diff', 'rock_face_nor', 'aerial_rocks_diff', 'aerial_rocks_nor', 'aerial_beach_diff', 'aerial_beach_nor', 'boulder_cracked_diff', 'water_nor'];
-    const models = ['bird', 'falcon', 'feather', 'stack0', 'stack1', 'stack2'];
+    const models = ['bird', 'falcon', 'feather', 'stack0', 'stack1', 'stack2', 'pine0', 'pine1', 'bush', 'rock0', 'rock1'];
     // version empaquetée : les modèles GLB sont intégrés au bundle (base64) ; sinon ils sont chargés depuis assets/
     const packed = window.__NUEE_MODELS__;
     const loadModel = (m) => {
@@ -145,6 +152,9 @@ export class Renderer3D {
   build() {
     const S = this.scene, U = this.U;
     this.sun = new THREE.DirectionalLight(0xffffff, 2);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.bias = -0.0006; this.sun.shadow.normalBias = 2.2; this.sun.shadow.radius = 2.5;
     S.add(this.sun); S.add(this.sun.target);
 
     // --- eau : deux couches de normales défilantes, reflets du ciel, éclats du soleil
@@ -168,7 +178,7 @@ export class Renderer3D {
           material.roughness = min(1.0, material.roughness + max(max(dnW.x, dnW.y), dnW.z) * 1.6);`);
     };
     const wm = new THREE.Mesh(new THREE.PlaneGeometry(26000, 26000), water);
-    wm.rotation.x = -Math.PI / 2; wm.position.set(0, WATER_Y, -5000);
+    wm.rotation.x = -Math.PI / 2; wm.position.set(0, WATER_Y, -5000); wm.receiveShadow = true;
     S.add(wm); this.water = wm;
 
     // --- roche : textures PBR scannées, assombrie et humide vers la ligne d'eau
@@ -185,7 +195,7 @@ export class Renderer3D {
           .replace('#include <color_fragment>', `#include <color_fragment>
             float hgt = smoothstep(${WATER_Y.toFixed(1)}, -40.0, vWY);
             diffuseColor.rgb *= mix(vec3(0.34, 0.37, 0.36), vec3(1.0), hgt);
-            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.75, 0.8, 0.82), smoothstep(${(WATER_Y + 9).toFixed(1)}, ${(WATER_Y + 1).toFixed(1)}, vWY) * 0.55);`)
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.75, 0.8, 0.82), smoothstep(${(WATER_Y + 4.5).toFixed(1)}, ${(WATER_Y + 0.5).toFixed(1)}, vWY) * 0.5);`)
           .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
             roughnessFactor = mix(0.45, roughnessFactor, smoothstep(${WATER_Y.toFixed(1)}, ${(WATER_Y + 60).toFixed(1)}, vWY));`);
       };
@@ -195,10 +205,33 @@ export class Renderer3D {
     this.topMat = new THREE.MeshStandardMaterial({ map: this.tex.aerial_rocks_diff, normalMap: this.tex.aerial_rocks_nor, normalScale: new THREE.Vector2(0.8, 0.8), roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
     this.stacks = [0, 1, 2].map((i) => {
       const im = new THREE.InstancedMesh(this.geo['stack' + i], this.cliffMat, MAX_STACK);
-      im.frustumCulled = false; im.count = 0; S.add(im);
+      im.frustumCulled = false; im.count = 0; im.castShadow = im.receiveShadow = true; S.add(im);
       return im;
     });
     this.canyonGroup = new THREE.Group(); S.add(this.canyonGroup);
+
+    // --- habillage des plateaux : conifères, buissons (couleurs par sommet) et blocs rocheux, tous instanciés
+    const veg = (this.vegMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }));
+    this.vegU = { uSnow: { value: 0 } };
+    veg.onBeforeCompile = (sh) => {
+      sh.uniforms.uSnow = this.vegU.uSnow;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vUpW;')
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+          vec3 nW = objectNormal;
+          #ifdef USE_INSTANCING
+            nW = mat3(instanceMatrix) * nW;
+          #endif
+          vUpW = normalize(mat3(modelMatrix) * nW).y;`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vUpW; uniform float uSnow;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.92, 1.0), uSnow * smoothstep(0.05, 0.6, vUpW));`);
+    };
+    const inst = (geo, mat, n) => { const im = new THREE.InstancedMesh(geo, mat, n); im.frustumCulled = false; im.count = 0; im.castShadow = im.receiveShadow = true; S.add(im); return im; };
+    this.pines = [inst(this.geo.pine0, veg, MAX_TREE / 2), inst(this.geo.pine1, veg, MAX_TREE / 2)];
+    this.bushes = inst(this.geo.bush, veg, MAX_BUSH);
+    this.rocks = [inst(this.geo.rock0, this.cliffMat, MAX_ROCK / 2), inst(this.geo.rock1, this.cliffMat, MAX_ROCK / 2)];
+    const white = new THREE.Color(1, 1, 1);
+    for (const im of [...this.pines, this.bushes]) { for (let i = 0; i < im.instanceMatrix.count; i++) im.setColorAt(i, white); }
 
     // --- oiseaux : modèle instancié, battement d'ailes dans le vertex shader
     const birdShader = (glow) => new THREE.ShaderMaterial({
@@ -244,13 +277,37 @@ export class Renderer3D {
           gl_FragColor = vec4(col, 1.0);
         }`,
     });
+    const birdDepth = (src) => new THREE.ShaderMaterial({
+      uniforms: { uTime: U.uTime, uFlap: src.uniforms.uFlap, uAmp: src.uniforms.uAmp }, side: THREE.DoubleSide,
+      vertexShader: `
+        attribute vec3 iPos; attribute vec4 iRot; attribute vec4 iCol;
+        uniform float uTime, uFlap, uAmp;
+        void main() {
+          vec3 p = position;
+          float w = uv.x; float side = p.x < 0.0 ? -1.0 : 1.0;
+          float ph = uTime * uFlap * (0.85 + 0.3 * fract(iRot.w * 7.31)) + iRot.w * 6.2831;
+          float ang = (sin(ph - w * 1.3) * uAmp + 0.16) * w;
+          float c = cos(ang), s = sin(ang);
+          vec2 q = vec2(abs(p.x) - 0.1, p.y - 0.045);
+          q = vec2(q.x * c - q.y * s, q.x * s + q.y * c);
+          p.x = side * (q.x + 0.1); p.y = q.y + 0.045 + sin(ph + 1.2) * 0.04;
+          float cb = cos(iRot.z), sb = sin(iRot.z);
+          p.xy = vec2(p.x * cb - p.y * sb, p.x * sb + p.y * cb);
+          vec3 f = vec3(iRot.x, 0.0, iRot.y), r = vec3(iRot.y, 0.0, -iRot.x);
+          vec3 wp = iPos + (r * p.x + vec3(0.0, p.y, 0.0) + f * p.z) * iCol.a;
+          gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+        }`,
+      fragmentShader: '#include <packing>\nvoid main() { gl_FragColor = packDepthToRGBA(gl_FragCoord.z); }',
+    });
     const bi = instanced(this.geo.bird, [['iPos', 3], ['iRot', 4], ['iCol', 4]], MAX_BIRDS);
     this.birdMat = birdShader(0);
     this.birds = new THREE.Mesh(bi.g, this.birdMat); this.birds.frustumCulled = false; this.birdA = bi.a; S.add(this.birds);
+    this.birds.castShadow = true; this.birds.customDepthMaterial = birdDepth(this.birdMat);
     const fi = instanced(this.geo.falcon, [['iPos', 3], ['iRot', 4], ['iCol', 4]], 4);
     this.falconMat = birdShader(0); this.falconMat.uniforms.uFlap.value = 9; this.falconMat.uniforms.uAmp.value = 0.35;
     this.falconMat.uniforms.uBeak.value = new THREE.Color('#ffc23a');
     this.falcons = new THREE.Mesh(fi.g, this.falconMat); this.falcons.frustumCulled = false; this.falconA = fi.a; S.add(this.falcons);
+    this.falcons.castShadow = true; this.falcons.customDepthMaterial = birdDepth(this.falconMat);
 
     // --- plumes dorées
     this.featherMesh = new THREE.InstancedMesh(this.geo.feather, new THREE.MeshStandardMaterial({ color: '#ffd77a', metalness: 0.85, roughness: 0.28, emissive: '#ffb640', emissiveIntensity: 1.5, side: THREE.DoubleSide }), MAX_FEATHER);
@@ -427,7 +484,16 @@ export class Renderer3D {
     const az = -Math.PI / 2 + (L.sun.az || 0.06), el = THREE.MathUtils.degToRad(L.sun.el);
     const dir = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el));
     U.uSunDir.value.copy(dir);
-    this.sun.position.copy(dir).multiplyScalar(1000); this.sun.target.position.set(0, 0, 0);
+    // carte d'ombres : couvre le champ de jeu et ce qui se trouve en amont du soleil
+    const ctr = new THREE.Vector3(0, -70, -520), sc = this.sun.shadow.camera, sinE = Math.sin(el);
+    this.sun.position.copy(ctr).addScaledVector(dir, 3200); this.sun.target.position.copy(ctr);
+    sc.left = -1050; sc.right = 1050; sc.top = 260 + 1750 * sinE; sc.bottom = -(260 + 1750 * sinE); sc.near = 200; sc.far = 6800;
+    sc.updateProjectionMatrix();
+    this.vegU.uSnow.value = L.veg.snow;
+    const tc = new THREE.Color(L.veg.tint), bc = new THREE.Color(L.veg.bush);
+    for (const im of this.pines) { for (let i = 0; i < im.instanceMatrix.count; i++) im.setColorAt(i, tc); im.instanceColor.needsUpdate = true; }
+    for (let i = 0; i < this.bushes.instanceMatrix.count; i++) this.bushes.setColorAt(i, bc);
+    this.bushes.instanceColor.needsUpdate = true;
     this.sun.color.set(L.sun.color); this.sun.intensity = L.sun.intensity;
     U.uSunCol.value.set(L.sun.color).multiplyScalar(L.sun.intensity * 0.4);
     const fogC = S.fog.color;
@@ -493,6 +559,8 @@ export class Renderer3D {
     const K = 12, n = c.n, step = c.step, rows = [0, 0.035, 0.1, 0.22, 0.4, 0.6, 0.82, 1];
     const tops = [[0, 0], [9, 3], [38, 7], [120, 12], [340, 18], [1100, 8]];
     const grp = new THREE.Group();
+    const V = this.look.veg, deco = (grp.userData.deco = { pine: [], bush: [], rock: [] });
+    const sm = (v) => clamp((v - 0.35) / 0.3, 0, 1);
     for (const sgn of [-1, 1]) {
       const arr = sgn < 0 ? c.L : c.R, jag = sgn < 0 ? c.jl : c.jr;
       const N = n + 2 * K, M = rows.length, T = tops.length;
@@ -535,7 +603,26 @@ export class Renderer3D {
       };
       const face = new THREE.Mesh(grid(fp, fu, M), this.cliffMat), top = new THREE.Mesh(grid(tp, tu, T), this.topMat);
       face.frustumCulled = top.frustumCulled = false;
+      face.castShadow = face.receiveShadow = top.castShadow = top.receiveShadow = true;
       grp.add(face, top);
+
+      // habillage : bosquets de conifères, buissons, blocs sur le plateau et éboulis à la ligne d'eau
+      const rd = rng(Math.floor(c.d0) * 31 + (sgn > 0 ? 7 : 3)), sv = c.d0 * 0.013 + sgn * 37;
+      const topY = (q, off) => {
+        let m = 0; while (m < T - 2 && tops[m + 1][0] < off) m++;
+        const k = clamp((off - tops[m][0]) / (tops[m + 1][0] - tops[m][0]), 0, 1);
+        return lerp(tp[(q * T + m) * 3 + 1], tp[(q * T + m + 1) * 3 + 1], k);
+      };
+      for (let q = 1; q < N - 1; q++) {
+        const X = tp[q * T * 3], z = tp[q * T * 3 + 2];
+        for (let k = 0; k < 2; k++) {
+          const off = 26 + Math.pow(rd(), 1.5) * 320, jz = (rd() - 0.5) * step, sc = 24 + rd() * 18;
+          if (rd() < V.trees * sm(vnoise((X + sgn * off) * 0.011 + sv, z * 0.011)) * 1.4) deco.pine.push(X + sgn * off, topY(q, off) - 1.5, z + jz, sc, sc * (0.9 + rd() * 0.35), rd() * 6.28, rd() < 0.5 ? 0 : 1);
+        }
+        if (rd() < V.bushes * 0.55) { const off = 12 + rd() * 230, sc = 7 + rd() * 7; deco.bush.push(X + sgn * off, topY(q, off) - 0.5, z + (rd() - 0.5) * step, sc, sc * (0.7 + rd() * 0.5), rd() * 6.28, 0); }
+        if (rd() < V.rocks * 0.2) { const off = 7 + rd() * 140, sc = 3.5 + rd() * 7; deco.rock.push(X + sgn * off, topY(q, off) - sc * 0.1, z + (rd() - 0.5) * step, sc, sc * (0.6 + rd() * 0.5), rd() * 6.28, rd() < 0.5 ? 0 : 1); }
+        if (rd() < 0.13) { const o = (q * M + M - 1) * 3, sc = 11 + rd() * 17; deco.rock.push(fp[o] - sgn * (4 + rd() * 14), WATER_Y - sc * 0.05, z + (rd() - 0.5) * step, sc, sc * (0.6 + rd() * 0.6), rd() * 6.28, rd() < 0.5 ? 0 : 1); }
+      }
     }
     return grp;
   }
@@ -605,6 +692,25 @@ export class Renderer3D {
     }
     for (const key of this.decor.keys()) if (key < c0 - 1) this.decor.delete(key);
     this.stacks.forEach((im, i) => { im.count = counts[i]; im.instanceMatrix.needsUpdate = true; });
+
+    // habillage des plateaux : matrices écrites directement (rotation en lacet + échelle)
+    const sets = [[this.pines, 'pine'], [[this.bushes], 'bush'], [this.rocks, 'rock']];
+    for (const [meshes, key] of sets) {
+      const cnt = [0, 0];
+      for (const m of this.canyonMeshes.values()) {
+        const d = m.userData.deco[key], dz = m.position.z;
+        for (let i = 0; i < d.length; i += 7) {
+          const z = d[i + 2] + dz;
+          if (z > VH + 380 || z < -3300) continue;
+          const v = meshes.length > 1 ? d[i + 6] : 0, im = meshes[v];
+          if (cnt[v] >= im.instanceMatrix.count) continue;
+          const e = im.instanceMatrix.array, o = cnt[v]++ * 16, s = d[i + 3], cs = Math.cos(d[i + 5]) * s, sn = Math.sin(d[i + 5]) * s;
+          e[o] = cs; e[o + 1] = 0; e[o + 2] = -sn; e[o + 3] = 0; e[o + 4] = 0; e[o + 5] = d[i + 4]; e[o + 6] = 0; e[o + 7] = 0;
+          e[o + 8] = sn; e[o + 9] = 0; e[o + 10] = cs; e[o + 11] = 0; e[o + 12] = d[i]; e[o + 13] = d[i + 1]; e[o + 14] = z; e[o + 15] = 1;
+        }
+      }
+      meshes.forEach((im, i) => { im.count = cnt[i]; im.instanceMatrix.needsUpdate = true; });
+    }
 
     this.syncBirds(game, dt);
     this.syncFx(game, dt);

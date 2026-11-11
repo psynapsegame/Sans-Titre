@@ -31,8 +31,8 @@ l'horizon), normalisés en exposition et réencodés (voir `tools/assets/process
 
 ## Créations originales de ce projet
 
-- `models/bird.glb`, `models/falcon.glb`, `models/feather.glb`, `models/stack0-2.glb` : modélisés dans Blender
-  par script (`tools/assets/make_models.py`).
+- `models/bird.glb`, `models/falcon.glb`, `models/feather.glb`, `models/stack0-2.glb`, `models/pine0-1.glb`,
+  `models/bush.glb`, `models/rock0-1.glb` : modélisés dans Blender par script (`tools/assets/make_models.py`).
 - `tex/clouds.webp` : nuages volumétriques rendus avec Blender Cycles (`tools/assets/make_clouds.py`).
 - `tex/moon.webp` : lune rendue avec Blender Cycles (`tools/assets/make_moon.py`).
 - `ui/*.jpg`, icônes : captures du moteur du jeu (`tools/make-keyart.mjs`).
