@@ -30,6 +30,7 @@ const game = new Game(cv, {
     el.textContent = text; el.classList.add('on');
     hintTimer = setTimeout(() => el.classList.remove('on'), 5200);
   },
+  onHurt(v) { $('hurt').style.opacity = v; },
   onEnd: showResult,
 });
 

@@ -18,7 +18,7 @@ export class Flock {
     this.dead = new Uint8Array(max);
     this.tx = VW / 2; this.ty = 400;
     this.hold = 0; this.cx = VW / 2; this.cy = 400; this.speed = 0;
-    this.spin = 1; this.ptx = this.tx; this.pty = this.ty; this.tvx = 0; this.tvy = 0;
+    this.spin = 1; this.dense = 1; this.ptx = this.tx; this.pty = this.ty; this.tvx = 0; this.tvy = 0;
   }
 
   add(x, y, vx = 0, vy = 0) {
@@ -45,6 +45,7 @@ export class Flock {
     const n = this.n, h = this.hold;
     // plus la nuée est grande, plus elle se serre : elle reste pilotable à 300 oiseaux
     const dense = clamp(Math.sqrt(70 / Math.max(n, 1)), 0.58, 1);
+    this.dense = dense;
     const sepR = lerp(21, 10.5, h) * dense, sepR2 = sepR * sepR, sepK = lerp(520, 760, h);
     const aliK = 0.07;
 

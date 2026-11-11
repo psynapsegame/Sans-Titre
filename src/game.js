@@ -88,14 +88,6 @@ export class Game {
     for (let i = 0; i < px.length; i += 4) { const n = (Math.random() - 0.5) * 5; px[i] += n; px[i + 1] += n; px[i + 2] += n; }
     g.putImageData(img, 0, 0);
 
-    const vg = (this.vignette = makeCanvas(W / 4, Hh / 4)), v = vg.getContext('2d');
-    const vr = v.createRadialGradient(vg.width / 2, vg.height * 0.48, vg.height * 0.3, vg.width / 2, vg.height * 0.5, vg.height * 0.78);
-    vr.addColorStop(0, 'rgba(0,0,0,0)'); vr.addColorStop(1, 'rgba(8,4,20,0.5)');
-    v.fillStyle = vr; v.fillRect(0, 0, vg.width, vg.height);
-    const hv = (this.hurtV = makeCanvas(W / 4, Hh / 4)), h = hv.getContext('2d');
-    const hr = h.createRadialGradient(hv.width / 2, hv.height / 2, hv.height * 0.25, hv.width / 2, hv.height / 2, hv.height * 0.7);
-    hr.addColorStop(0, 'rgba(255,60,40,0)'); hr.addColorStop(1, 'rgba(255,60,40,0.7)');
-    h.fillStyle = hr; h.fillRect(0, 0, hv.width, hv.height);
   }
 
   start({ mode, ci = 0, li = 0, skin = 'etourneau' }) {
@@ -487,10 +479,11 @@ export class Game {
     // la nuée
     if (this.birdGlow) {
       g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5;
-      for (let i = 0; i < f.n; i++) g.drawImage(this.birdGlow, f.x[i] - 9, f.y[i] - 9, 18, 18);
+      const stepG = f.n > 160 ? 2 : 1, gz = stepG === 2 ? 24 : 18;
+      for (let i = 0; i < f.n; i += stepG) g.drawImage(this.birdGlow, f.x[i] - gz / 2, f.y[i] - gz / 2, gz, gz);
       g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
     }
-    f.draw(g, t, this.colors, 1);
+    f.draw(g, t, this.colors, 0.7 + 0.3 * f.dense);
 
     for (const fa of this.falcons) this.drawFalcon(g, fa);
     for (const st of this.storms) this.drawStorm(g, st);
@@ -508,8 +501,9 @@ export class Game {
     }
 
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.drawImage(this.vignette, 0, 0, this.cv.width, this.cv.height);
-    if (this.hurt > 0.01) { g.globalAlpha = Math.min(0.6, this.hurt * 0.6); g.drawImage(this.hurtV, 0, 0, this.cv.width, this.cv.height); }
+    // vignettage et voile rouge : calques CSS, composés par le GPU
+    const hv = Math.round(Math.min(0.6, this.hurt * 0.6) * 20) / 20;
+    if (hv !== this._hv) { this._hv = hv; this.hooks.onHurt(hv); }
     if (this.flash > 0.01) { g.globalAlpha = this.flash; g.fillStyle = '#fff'; g.fillRect(0, 0, this.cv.width, this.cv.height); }
     g.globalAlpha = 1;
   }
