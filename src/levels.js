@@ -51,7 +51,7 @@ export const CHAPTERS = [
     id: 'mer', num: 'IV', name: 'Mer du soir', blurb: 'Les récifs s’embrasent au couchant.',
     sky: ['#22163f', '#7a2f6a', '#e25d63', '#ffb765'],
     sun: { x: 0.36, y: 0.84, r: 56, core: '#ffe9b0', glow: '#ff8a55' },
-    cloud: '#ffb08f', rock: ['#1c1030', '#34184a', '#ff9d6e'], ink: '#140b24',
+    cloud: '#ffb08f', rock: ['#1c1030', '#34184a', '#ff9d6e'], ink: '#4a3140',
     accent: '#ffc27a', storm: '#2a1640', stars: 0.35, aurora: false, root: 164.8,
     speed: 110, start: 66,
     levels: [

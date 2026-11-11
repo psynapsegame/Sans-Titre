@@ -3,11 +3,10 @@ import { Game } from './game.js';
 import { Renderer3D } from './render3d.js';
 import { audio, buzz } from './audio.js';
 import { save, loadSave, persist } from './save.js';
-import { rgba } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), cv = $('c');
-const SCREENS = ['title', 'map', 'skins', 'pause', 'result'];
+const SCREENS = ['title', 'map', 'skins', 'pause', 'result', 'credits'];
 const TOTAL_STARS = CHAPTERS.length * 4 * 3;
 const star = (on) => `<svg class="${on ? 'on' : ''}"><use href="#i-star"/></svg>`;
 
@@ -139,41 +138,20 @@ function buildMap() {
       return `<button class="lvl${isNext ? ' next' : ''}" data-l="${ci}-${li}" ${ok ? '' : 'disabled'} aria-label="${l.name}">
         <b>${ok ? li + 1 : '<svg><use href="#i-lock"/></svg>'}</b><span class="s">${star(st > 0)}${star(st > 1)}${star(st > 2)}</span></button>`;
     }).join('');
-    return `<article class="chapter${open ? '' : ' locked'}" style="background:linear-gradient(165deg,${ch.sky[0]},${ch.sky[1]} 42%,${ch.sky[2]} 78%,${ch.sky[3]})">
+    return `<article class="chapter${open ? '' : ' locked'}" style="background-image:url(assets/ui/ch${ci}.jpg)">
       <span class="num">${ch.num}</span><h3>${ch.name}</h3><p>${ch.blurb}</p><div class="levels">${lv}</div></article>`;
   }).join('');
 }
 
 /* ---------- plumages ---------- */
-function drawSkinPreview(c, sk) {
-  const ch = CHAPTERS[game.ci], w = (c.width = 320), h = (c.height = 192), g = c.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, w, h);
-  ch.sky.forEach((col, i) => gr.addColorStop(i / (ch.sky.length - 1), col));
-  g.fillStyle = gr; g.fillRect(0, 0, w, h);
-  const colors = sk.colors || [ch.ink];
-  for (let i = 0; i < 46; i++) {
-    const a = i * 2.39996, r = 8 + Math.sqrt(i) * 11, x = w / 2 + Math.cos(a) * r * 1.5, y = h / 2 + Math.sin(a) * r * 0.75;
-    const d = a + 1.75, ux = Math.cos(d), uy = Math.sin(d) * 0.6, fl = 0.35 + 0.65 * Math.abs(Math.sin(i * 1.7));
-    if (sk.glow) {
-      const rg = g.createRadialGradient(x, y, 0, x, y, 16);
-      rg.addColorStop(0, rgba(sk.glow, 0.5)); rg.addColorStop(1, rgba(sk.glow, 0));
-      g.globalCompositeOperation = 'lighter'; g.fillStyle = rg; g.fillRect(x - 16, y - 16, 32, 32); g.globalCompositeOperation = 'source-over';
-    }
-    g.fillStyle = colors[i % colors.length];
-    const l = 8, wd = 8 * fl, px = -uy * wd, py = ux * wd, bx = x - ux * l * 0.55, by = y - uy * l * 0.55;
-    g.beginPath(); g.moveTo(x + ux * l, y + uy * l); g.lineTo(bx + px, by + py); g.lineTo(x - ux * l * 0.1, y - uy * l * 0.1); g.lineTo(bx - px, by - py); g.fill();
-  }
-}
-
 function buildSkins() {
   $('sFeathers').textContent = save.feathers;
   const grid = $('skinGrid');
   grid.innerHTML = SKINS.map((sk) => {
     const own = save.owned.includes(sk.id), act = save.skin === sk.id, poor = !own && save.feathers < sk.price;
     const label = act ? 'Portée' : own ? 'Choisir' : `<svg><use href="#i-feather"/></svg>${sk.price}`;
-    return `<button class="skin${act ? ' active' : ''}${poor ? ' poor' : ''}" data-s="${sk.id}"><canvas></canvas><div><b>${sk.name}</b><small>${sk.desc}</small><em>${label}</em></div></button>`;
+    return `<button class="skin${act ? ' active' : ''}${poor ? ' poor' : ''}" data-s="${sk.id}"><img src="assets/ui/skin-${sk.id}.jpg" alt="" loading="lazy"><div><b>${sk.name}</b><small>${sk.desc}</small><em>${label}</em></div></button>`;
   }).join('');
-  grid.querySelectorAll('.skin').forEach((el, i) => drawSkinPreview(el.querySelector('canvas'), SKINS[i]));
 }
 
 /* ---------- résultat ---------- */
@@ -228,6 +206,7 @@ const tap = (id, fn) => $(id).addEventListener('click', () => { audio.unlock(); 
 tap('btnPlay', () => { const nx = nextLevel(); if (nx) play('level', nx.ci, nx.li); else play('endless', CHAPTERS.length - 1); });
 tap('btnMap', () => { buildMap(); show('map'); });
 tap('btnSkins', () => { buildSkins(); show('skins'); });
+tap('btnCredits', () => show('credits'));
 tap('btnEndless', () => {
   if (endlessOpen()) play('endless', Math.min(CHAPTERS.length - 1, Math.floor(totalStars() / 12)));
   else game.hooks.onHint('Termine le chapitre I pour ouvrir la migration sans fin.');
@@ -293,10 +272,16 @@ function frame(now) {
     dt = Math.min(raw, 0.034);
     game.update(dt);
     // qualité adaptative : on baisse la résolution si l'appareil peine
-    if (raw > 0.027 && raw < 0.2) { if (++slow > 50 && dpr > 1) { dpr = Math.max(1, dpr - 0.5); slow = 0; resize(); } }
+    if (raw > 0.027 && raw < 0.2) {
+      if (++slow > 50) {
+        slow = 0;
+        if (dpr > 1) { dpr = Math.max(1, dpr - 0.5); resize(); }
+        else renderer.bloom.enabled = false; // dernier recours sur les appareils modestes
+      }
+    }
     else slow = Math.max(0, slow - 2);
   }
-  renderer.frame(game, dt);
+  if (!window.__nuee.noRender) renderer.frame(game, dt);
   const hv = Math.round(Math.min(0.6, game.hurt * 0.6) * 20) / 20, fv = Math.round(game.flash * 20) / 20;
   if (hv !== hurtV) $('hurt').style.opacity = hurtV = hv;
   if (fv !== flashV) $('flash').style.opacity = flashV = fv;

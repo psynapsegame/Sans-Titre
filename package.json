@@ -1,15 +1,15 @@
 {
   "name": "nuee",
-  "version": "1.0.0",
-  "description": "Nuée — guide une nuée d’oiseaux à travers cinq ciels. Jeu mobile à un doigt.",
+  "version": "2.0.0",
+  "description": "Nuée — guide une nuée d’oiseaux à travers cinq ciels. Jeu mobile 3D à un doigt.",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "npx --yes serve -l 8080 .",
     "build": "node tools/build.mjs",
-    "icons": "node tools/make-icons.mjs",
     "cap:init": "npm i @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios && npx cap add android && npx cap add ios",
-    "cap:sync": "npm run build && npx cap sync"
+    "cap:sync": "npm run build && npx cap sync",
+    "keyart": "node tools/make-keyart.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

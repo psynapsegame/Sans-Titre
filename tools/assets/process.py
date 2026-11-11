@@ -15,13 +15,15 @@ TEX = {
     'aerial_rocks_diff': 'pc-aerial_rocks_02_diff_1k.jpg', 'aerial_rocks_nor': 't-aerial_rocks_02_nor_1k.jpg',
     'aerial_beach_diff': 't-aerial_beach_01_diff_1k.jpg', 'aerial_beach_nor': 't-aerial_beach_01_nor_1k.jpg',
     'boulder_cracked_diff': 'pc-rock_boulder_cracked_diff_1k.jpg',
-    'water_nor': 'waternormals.jpg', 'moon': 'moon_1024.jpg',
+    'water_nor': 'waternormals.jpg',
 }
 for name, f in TEX.items():
     im = Image.open(f'{src}/{f}').convert('RGB')
     q = 88 if name.endswith('nor') else 84
     im.save(f'{dst}/tex/{name}.jpg', quality=q, optimize=True)
     print('tex', name, im.size, os.path.getsize(f'{dst}/tex/{name}.jpg') // 1024, 'KB')
+
+if os.path.exists(f'{src}/moon.png'): Image.open(f'{src}/moon.png').save(f'{dst}/tex/moon.webp', quality=90)
 
 # ---- atlas de nuages (rendus Cycles) 2x2 en WebP avec alpha
 cl = [Image.open(f'{src}/clouds/cloud{i}.png').convert('RGBA') for i in range(4)] if os.path.exists(f'{src}/clouds/cloud3.png') else []
@@ -45,7 +47,7 @@ SKIES = [
     ('gorges', 'quarry_01_1k.hdr', 0.565, 1.5, 0.6),
     ('orage', 'blouberg_sunrise_2_1k.hdr', 0.335, 4.0, 0.4),
     ('mer', 'venice_sunset_1k.hdr', 0.60, 1.2, 0.5),
-    ('boreale', 'dikhololo_night_1k.hdr', 0.69, 19.0, 0.075),
+    ('boreale', 'dikhololo_night_1k.hdr', 0.69, 30.0, 0.075),
 ]
 W, H = 1024, 512
 SKY_MAX = 4.0

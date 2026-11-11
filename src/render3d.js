@@ -17,19 +17,19 @@ const MAX_BIRDS = 480, MAX_CLOUDS = 150, MAX_GLOW = 420, MAX_SEG = 360, MAX_RING
 
 /** Direction artistique par chapitre : ciel HDR, lumière, brume, eau, roche. */
 export const LOOKS = [
-  { sky: 'aube', exposure: 0.62, env: 1.15, sun: { color: '#ffc7a0', intensity: 2.4, el: 12, az: 0.45 }, fog: { color: '#b08aa3', density: 0.00024 },
+  { sky: 'aube', exposure: 0.62, env: 1.15, sun: { color: '#ffc7a0', intensity: 2.4, el: 12, az: 0.45 }, fog: { color: '#b08aa3', density: 0.00020 },
     water: { color: '#1b2742', rough: 0.1 }, cliff: { map: 'rock_face_diff', tint: '#b3a4a6' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#b9ad9f' },
     cloud: '#ffd9cf', storm: '#4a4058', bloom: 0.5, sunGlow: null, mist: 0.5 },
-  { sky: 'gorges', exposure: 0.7, env: 1.0, sun: { color: '#fff0d6', intensity: 3.4, el: 30, az: 0.85 }, fog: { color: '#a9c4d2', density: 0.0002, mix: 0.6 },
+  { sky: 'gorges', exposure: 0.7, env: 1.0, sun: { color: '#fff0d6', intensity: 3.4, el: 30, az: 0.85 }, fog: { color: '#a9c4d2', density: 0.00017, mix: 0.6 },
     water: { color: '#0d4852', rough: 0.07 }, cliff: { map: 'boulder_cracked_diff', tint: '#e0a27c' }, top: { map: 'boulder_cracked_diff', nor: 'aerial_rocks_nor', tint: '#f3d2ac' },
     cloud: '#ffffff', storm: '#55606c', bloom: 0.4, sunGlow: { color: '#fff3d8', size: 900, power: 5 }, mist: 0.2 },
-  { sky: 'orage', exposure: 0.85, env: 0.95, sun: { color: '#b9c8e6', intensity: 1.3, el: 34, az: -0.7 }, fog: { color: '#4d5a70', density: 0.00038, mix: 0.6 },
+  { sky: 'orage', exposure: 0.85, env: 0.95, sun: { color: '#b9c8e6', intensity: 1.3, el: 34, az: -0.7 }, fog: { color: '#4d5a70', density: 0.00032, mix: 0.6 },
     water: { color: '#0f1a2a', rough: 0.2 }, cliff: { map: 'rock_face_diff', tint: '#70788a' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#6d7876' },
     cloud: '#8a94a6', storm: '#1c212c', bloom: 0.55, sunGlow: null, mist: 0.75, rain: true },
-  { sky: 'mer', exposure: 0.72, env: 1.05, sun: { color: '#ffae6c', intensity: 3.2, el: 8 }, fog: { color: '#c58c84', density: 0.00024 },
+  { sky: 'mer', exposure: 0.72, env: 1.05, sun: { color: '#ffae6c', intensity: 3.2, el: 8 }, fog: { color: '#c58c84', density: 0.00020 },
     water: { color: '#191a36', rough: 0.085 }, cliff: { map: 'rock_face_diff', tint: '#6f5a66' }, top: { map: 'aerial_rocks_diff', nor: 'aerial_rocks_nor', tint: '#7d6d64' },
     cloud: '#ffbfa2', storm: '#2c1e3c', bloom: 0.6, sunGlow: { color: '#ffb070', size: 1100, power: 6 }, mist: 0.4 },
-  { sky: 'boreale', exposure: 1.7, env: 1.3, sun: { color: '#b8d6ff', intensity: 1.0, el: 38, az: -0.5 }, fog: { color: '#0b1828', density: 0.00026 },
+  { sky: 'boreale', exposure: 1.7, env: 1.3, sun: { color: '#b8d6ff', intensity: 1.0, el: 38, az: -0.5 }, fog: { color: '#0b1828', mix: 0.88, density: 0.00022 },
     water: { color: '#040a15', rough: 0.07 }, cliff: { map: 'rock_face_diff', tint: '#5f7088' }, top: { map: 'aerial_beach_diff', nor: 'aerial_beach_nor', tint: '#e6eff8' },
     cloud: '#5a8aa6', storm: '#1c2a40', bloom: 0.8, sunGlow: null, mist: 0.5, aurora: true, stars: true, moon: true },
 ];
@@ -85,9 +85,9 @@ export class Renderer3D {
   /* ------------------------------------------------------------ chargement */
   async load(onProgress) {
     const tl = new THREE.TextureLoader(), gl = new GLTFLoader();
-    const names = ['rock_face_diff', 'rock_face_nor', 'aerial_rocks_diff', 'aerial_rocks_nor', 'aerial_beach_diff', 'aerial_beach_nor', 'boulder_cracked_diff', 'water_nor', 'moon'];
+    const names = ['rock_face_diff', 'rock_face_nor', 'aerial_rocks_diff', 'aerial_rocks_nor', 'aerial_beach_diff', 'aerial_beach_nor', 'boulder_cracked_diff', 'water_nor'];
     const models = ['bird', 'falcon', 'feather', 'stack0', 'stack1', 'stack2'];
-    let done = 0; const total = names.length + models.length + 2;
+    let done = 0; const total = names.length + models.length + 3;
     const tick = () => onProgress && onProgress(++done / total);
     const aniso = Math.min(8, this.r.capabilities.getMaxAnisotropy());
     await Promise.all([
@@ -98,6 +98,7 @@ export class Renderer3D {
       })),
       fetch('assets/sky/sky-info.json').then((r) => r.json()).then((j) => { this.skyInfo = j; }),
       tl.loadAsync('assets/tex/clouds.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; this.tex.clouds = t; tick(); }),
+      tl.loadAsync('assets/tex/moon.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; this.tex.moon = t; tick(); }),
       ...models.map((m) => gl.loadAsync(`assets/models/${m}.glb`).then((g) => {
         let geo = null; g.scene.traverse((o) => { if (o.isMesh && !geo) geo = o.geometry; });
         this.geo[m] = geo; tick();
@@ -182,7 +183,7 @@ export class Renderer3D {
       };
       return m;
     };
-    this.cliffMat = rockPatch(new THREE.MeshStandardMaterial({ map: this.tex.rock_face_diff, normalMap: this.tex.rock_face_nor, normalScale: new THREE.Vector2(1.5, 1.5), roughness: 0.93, metalness: 0, side: THREE.DoubleSide }));
+    this.cliffMat = rockPatch(new THREE.MeshStandardMaterial({ map: this.tex.rock_face_diff, normalMap: this.tex.rock_face_nor, normalScale: new THREE.Vector2(1.15, 1.15), roughness: 0.93, metalness: 0, side: THREE.DoubleSide }));
     this.topMat = new THREE.MeshStandardMaterial({ map: this.tex.aerial_rocks_diff, normalMap: this.tex.aerial_rocks_nor, normalScale: new THREE.Vector2(0.8, 0.8), roughness: 0.95, metalness: 0, side: THREE.DoubleSide });
     this.stacks = [0, 1, 2].map((i) => {
       const im = new THREE.InstancedMesh(this.geo['stack' + i], this.cliffMat, MAX_STACK);
@@ -226,9 +227,10 @@ export class Renderer3D {
         varying vec3 vCol; varying vec3 vN; varying float vAccent; varying float vFogD;
         void main() {
           vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
-          vec3 base = mix(vCol, uBeak, vAccent);
+          // plumage jamais tout à fait noir : le dessus accroche la lumière du ciel, la nuée reste lisible sur la roche sombre
+          vec3 base = mix(vCol + 0.03, uBeak, vAccent);
           float ndl = max(dot(n, uSunDir), 0.0);
-          vec3 col = base * (mix(uGround, uSky, n.y * 0.5 + 0.5) * 1.15 + uSunCol * ndl * 0.9);
+          vec3 col = base * (mix(uGround, uSky * 2.1, smoothstep(-0.2, 1.0, n.y)) + uSunCol * ndl * 1.3);
           col += base * uGlow;
           ${FOG_APPLY}
           gl_FragColor = vec4(col, 1.0);
@@ -344,9 +346,17 @@ export class Renderer3D {
     const sp = new Float32Array(700 * 3), r = rng(11);
     for (let i = 0; i < 700; i++) { const az = (r() - 0.5) * 2.6 - Math.PI / 2, el = Math.pow(r(), 1.4) * 1.2 + 0.02; sp[i * 3] = Math.cos(az) * Math.cos(el) * 9000; sp[i * 3 + 1] = Math.sin(el) * 9000; sp[i * 3 + 2] = Math.sin(az) * Math.cos(el) * 9000; }
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
-    this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xcfe2ff, size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.9, depthWrite: false }));
+    const sr = new Float32Array(700); for (let i = 0; i < 700; i++) sr[i] = r();
+    sg.setAttribute('aRnd', new THREE.BufferAttribute(sr, 1));
+    this.stars = new THREE.Points(sg, new THREE.ShaderMaterial({
+      uniforms: { uTime: U.uTime, uPx: { value: 2 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `attribute float aRnd; uniform float uTime, uPx; varying float vA;
+        void main() { vA = (0.35 + 0.65 * aRnd) * (0.75 + 0.25 * sin(uTime * (1.0 + aRnd * 3.0) + aRnd * 40.0));
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_PointSize = uPx * (1.2 + aRnd * 2.2); }`,
+      fragmentShader: `varying float vA; void main() { float d = length(gl_PointCoord - 0.5) * 2.0; gl_FragColor = vec4(vec3(0.8, 0.88, 1.0) * vA * pow(max(0.0, 1.0 - d), 2.0) * 2.2, 1.0); }`,
+    }));
     this.stars.frustumCulled = false; S.add(this.stars);
-    this.moon = new THREE.Mesh(new THREE.CircleGeometry(300, 48), new THREE.MeshBasicMaterial({ map: this.tex.moon, color: new THREE.Color(2.6, 2.7, 2.9), fog: false }));
+    this.moon = new THREE.Mesh(new THREE.PlaneGeometry(620, 620), new THREE.MeshBasicMaterial({ map: this.tex.moon, color: new THREE.Color(3.4, 3.5, 3.8), fog: false, transparent: true, depthWrite: false }));
     this.moon.position.set(1150, 1650, -8200); this.moon.lookAt(0, 0, 0); S.add(this.moon);
     this.aurora = new THREE.Mesh(new THREE.PlaneGeometry(15000, 3600, 1, 1), new THREE.ShaderMaterial({
       uniforms: { uTime: U.uTime }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
@@ -369,10 +379,18 @@ export class Renderer3D {
     }));
     this.aurora.position.set(0, 2300, -7600); S.add(this.aurora);
 
+    // --- voile d'horizon : fond le ciel dans la brume, sans ligne visible entre mer et ciel
+    this.haze = new THREE.Mesh(new THREE.CylinderGeometry(11500, 11500, 6000, 48, 1, true), new THREE.ShaderMaterial({
+      uniforms: { uFogColor: U.uFogColor, uCamY: { value: 500 } }, transparent: true, depthWrite: false, side: THREE.BackSide, fog: false,
+      vertexShader: 'varying float vY; void main() { vY = (modelMatrix * vec4(position, 1.0)).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform vec3 uFogColor; uniform float uCamY; varying float vY; void main() { float a = 1.0 - smoothstep(0.0, 1500.0, vY - uCamY); gl_FragColor = vec4(uFogColor, a * a); }',
+    }));
+    this.haze.frustumCulled = false; this.haze.renderOrder = 1; S.add(this.haze);
+
     // --- nappes de nuages et brumes d'ambiance (positions locales)
     const cr = rng(5);
     this.amb = [];
-    for (let i = 0; i < 12; i++) this.amb.push({ kind: 0, x: (cr() - 0.5) * 6400, y: 260 + cr() * 900, z: -3000 - cr() * 2600, w: 1100 + cr() * 1300, a: 0.55 + cr() * 0.3, s: i % 4 });
+    for (let i = 0; i < 12; i++) this.amb.push({ kind: 0, x: (cr() - 0.5) * 6400, y: 520 + cr() * 900, z: -3200 - cr() * 2600, w: 1100 + cr() * 1300, a: 0.55 + cr() * 0.3, s: i % 4 });
     for (let i = 0; i < 12; i++) this.amb.push({ kind: 1, x: (cr() - 0.5) * 1500, y: WATER_Y + 16 + cr() * 50, z: -2800 + cr() * 3400, w: 520 + cr() * 520, a: 0.3 + cr() * 0.25, s: i % 4 });
     for (let i = 0; i < 4; i++) this.amb.push({ kind: 2, x: (cr() - 0.5) * 900, y: 90 + cr() * 60, z: -1800 + cr() * 2400, w: 420 + cr() * 260, a: 0.14 + cr() * 0.1, s: i % 4 });
 
@@ -395,7 +413,7 @@ export class Renderer3D {
     this.r.toneMappingExposure = L.exposure;
     // la brume prend la couleur réelle du ciel à l'horizon : la mer se fond dans le ciel sans couture
     const hz = this.skyInfo[L.sky].horizon, zen = this.skyInfo[L.sky].zenith;
-    S.fog.color.setRGB(hz[0], hz[1], hz[2]).lerp(new THREE.Color(L.fog.color), L.fog.mix ?? 0.35);
+    S.fog.color.setRGB(hz[0], hz[1], hz[2]).lerp(new THREE.Color(L.fog.color), L.fog.mix ?? 0.55);
     S.fog.density = L.fog.density; U.uFogDensity.value = L.fog.density;
     // direction du soleil : celle du HDRI (face à la caméra), relevée pour modeler les reliefs
     const az = -Math.PI / 2 + (L.sun.az || 0.06), el = THREE.MathUtils.degToRad(L.sun.el);
@@ -429,6 +447,7 @@ export class Renderer3D {
     this.r.setPixelRatio(dpr); this.r.setSize(w, h, false);
     this.composer.setPixelRatio(dpr); this.composer.setSize(w, h);
     this.bloom.resolution.set(w * dpr * 0.5, h * dpr * 0.5);
+    this.stars.material.uniforms.uPx.value = dpr;
     this.cam.aspect = w / h;
     this.placeCamera();
   }
@@ -536,6 +555,7 @@ export class Renderer3D {
     const sh = game.shake * 4;
     this.cam.position.set(this.camBase.x + (Math.random() - 0.5) * sh + (f.cx - HALF) * 0.06, this.camBase.y + (Math.random() - 0.5) * sh, this.camBase.z);
     this.cam.updateMatrixWorld();
+    this.haze.material.uniforms.uCamY.value = this.cam.position.y;
     const p0 = this.project(f.tx, f.ty), p1 = this.project(f.tx + 20, f.ty), p2 = this.project(f.tx, f.ty + 20);
     game.kx = 20 / Math.max(2, Math.abs(p1.x - p0.x)); game.ky = 20 / Math.max(2, Math.abs(p2.y - p0.y));
 

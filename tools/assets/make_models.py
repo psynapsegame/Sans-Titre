@@ -221,14 +221,14 @@ def make_stack(idx, seed):
         t = j / (rings - 1)
         band = math.floor(t * 15 + seed)
         ledge = 0.075 * noise.noise(Vector((band * 7.31, seed, 0.5))) + 0.03 * math.sin(t * 61 + seed)
-        prof = 1.0 + 0.62 * (1 - t) ** 2.4
+        prof = 1.0 + 0.55 * (1 - t) ** 2.2 + 0.07 * math.sin(t * 7 + seed) - 0.1 * math.exp(-((t - 0.55) / 0.13) ** 2)
         lean = Vector((fbm(Vector((t * 1.6, seed, 3.1)), 2), fbm(Vector((seed, t * 1.6, 7.7)), 2), 0)) * 0.16 * (1 - t) ** 0.7
         row = []
         for k in range(segs):
             a = k / segs * math.tau
             ca, sa = math.cos(a), math.sin(a)
             r = prof * (1 + ledge)
-            r *= 1 + 0.17 * fbm(Vector((ca * 1.2 + seed, sa * 1.2, t * 1.4)), 3)
+            r *= 1 + 0.27 * fbm(Vector((ca * 1.1 + seed, sa * 1.1, t * 1.3)), 3) + 0.1 * math.cos(2 * a + seed)
             r *= 1 + 0.07 * fbm(Vector((ca * 3.6, sa * 3.6 + seed, t * 6.5)), 3)
             crev = noise.noise(Vector((ca * 2.7 + seed * 2, sa * 2.7, t * 0.6)))
             r *= 1 - 0.16 * max(0.0, crev) ** 1.5
@@ -258,12 +258,16 @@ def make_stack(idx, seed):
             k2 = (k + 1) % segs
             f = bm.faces.new([grid[j][k], grid[j][k2], grid[j + 1][k2], grid[j + 1][k]])
             for l, (kk, jj) in zip(f.loops, ((k, j), (k + 1, j), (k + 1, j + 1), (k, j + 1))):
-                l[uv].uv = (kk / segs * 3.0, min(jj, rings - 1) / (rings - 1) * 3.2 + max(0, jj - rings + 1) * 0.06)
+                if jj >= rings - 1 and j >= rings - 1:  # calotte : projection plane, sans étirement radial
+                    co = grid[jj][kk % segs].co
+                    l[uv].uv = (co.x * 0.42 + seed, co.y * 0.42)
+                else:
+                    l[uv].uv = (kk / segs * 3.0, jj / (rings - 1) * 3.2)
     for k in range(segs):
         k2 = (k + 1) % segs
         f = bm.faces.new([grid[-1][k], grid[-1][k2], apex])
-        for l, q in zip(f.loops, ((k / segs * 3.0, 3.4), ((k + 1) / segs * 3.0, 3.4), ((k + 0.5) / segs * 3.0, 3.5))):
-            l[uv].uv = q
+        for l, vtx in zip(f.loops, (grid[-1][k], grid[-1][k2], apex)):
+            l[uv].uv = (vtx.co.x * 0.42 + seed, vtx.co.y * 0.42)
     bmesh.ops.triangulate(bm, faces=bm.faces)
     finish(bm, f'stack{idx}', smooth=True)
     export(f'stack{idx}')

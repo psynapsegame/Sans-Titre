@@ -74,6 +74,7 @@
         <button id="btnSkins">Plumages</button>
         <button id="btnEndless"><svg id="endLock"><use href="#i-lock"/></svg>Sans fin</button>
       </nav>
+      <button class="link" id="btnCredits">Crédits et licences</button>
     </div>
   </section>
 
@@ -85,6 +86,20 @@
   <section id="skins" class="screen scrim" hidden>
     <header class="bar"><button class="round" data-back aria-label="Retour"><svg><use href="#i-back"/></svg></button><h2>Plumages</h2><span class="grow"></span><div class="pill gold"><svg><use href="#i-feather"/></svg><span id="sFeathers">0</span></div></header>
     <div class="scroll"><p class="lead">Les plumes dorées ramassées en vol habillent ta nuée.</p><div class="grid" id="skinGrid"></div></div>
+  </section>
+
+  <section id="credits" class="screen scrim" hidden>
+    <header class="bar"><button class="round" data-back aria-label="Retour"><svg><use href="#i-back"/></svg></button><h2>Crédits</h2></header>
+    <div class="scroll credits">
+      <p class="lead">Nuée est rendu en 3D temps réel. Voici d’où viennent ses images.</p>
+      <h3>Textures et ciels</h3>
+      <p>Roches, sols et ciels photographiés et scannés par <b>Poly Haven</b> (domaine public, CC0)&nbsp;: Rock Face 03, Aerial Rocks 02, Aerial Beach 01, Rock Boulder Cracked, Kiara 1 Dawn, Quarry 01, Blouberg Sunrise 2, Venice Sunset, Dikhololo Night.</p>
+      <p>Carte de vagues issue des exemples de <b>three.js</b> (licence MIT).</p>
+      <h3>Modèles et rendus originaux</h3>
+      <p>Étourneau, faucon, plume et aiguilles rocheuses modélisés dans <b>Blender</b> pour ce jeu. Nuages volumétriques et lune rendus avec Blender Cycles.</p>
+      <h3>Technologies</h3>
+      <p>Moteur <b>three.js</b> (MIT). Polices Fraunces et Outfit (SIL Open Font License). Musique et bruitages synthétisés en direct.</p>
+    </div>
   </section>
 
   <section id="pause" class="screen scrim soft center" hidden>
