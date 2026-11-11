@@ -111,29 +111,6 @@ export class Flock {
       if (dead[i]) { if (onDeath) onDeath(x[i], y[i], vx[i], vy[i], dead[i]); this.kill(i); }
     }
   }
-
-  /** Trace toute la nuée, regroupée par couleur pour limiter les appels canvas. */
-  draw(ctx, t, colors, size = 1) {
-    const { x, y, vx, vy, ph } = this, n = this.n, k = colors.length;
-    for (let c = 0; c < k; c++) {
-      ctx.fillStyle = colors[c];
-      ctx.beginPath();
-      for (let i = c; i < n; i += k) {
-        const sp = Math.hypot(vx[i], vy[i]) + 1e-3;
-        const ux = vx[i] / sp, uy = vy[i] / sp;
-        const flap = 0.3 + 0.7 * Math.abs(Math.sin(t * 13 + ph[i] * 30));
-        const w = 4.4 * size * flap, l = 4.6 * size;
-        const px = -uy * w, py = ux * w;
-        const bx = x[i] - ux * l * 0.55, by = y[i] - uy * l * 0.55;
-        ctx.moveTo(x[i] + ux * l, y[i] + uy * l);
-        ctx.lineTo(bx + px, by + py);
-        ctx.lineTo(x[i] - ux * l * 0.1, y[i] - uy * l * 0.1);
-        ctx.lineTo(bx - px, by - py);
-        ctx.closePath();
-      }
-      ctx.fill();
-    }
-  }
 }
 
 export function clampTarget(f, VH) {

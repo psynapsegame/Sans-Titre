@@ -39,6 +39,17 @@ svg { width: 1em; height: 1em; display: block; flex: none; }
 
 .fx { position: absolute; inset: 0; pointer-events: none; }
 #vig { background: radial-gradient(ellipse 85% 70% at 50% 48%, rgba(8, 4, 20, 0) 52%, rgba(8, 4, 20, 0.46) 100%); }
+#flash { background: #fff; opacity: 0; }
+#veil { background: var(--night); opacity: 0; transition: opacity 0.26s; }
+#veil.on { opacity: 1; }
+.pop { position: absolute; transform: translate(-50%, -50%); font-family: var(--display); font-weight: 600; font-size: 24px; color: var(--paper); text-shadow: 0 2px 12px rgba(8, 4, 26, 0.7); animation: pop 1.2s ease-out forwards; }
+@keyframes pop { from { opacity: 0; margin-top: 0; } 15% { opacity: 1; } to { opacity: 0; margin-top: -54px; } }
+#loader { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 0 var(--gr) 0 var(--gl); background: radial-gradient(120% 80% at 50% 100%, #3a2a55 0%, var(--night) 70%); transition: opacity 0.8s; }
+#loader.done { opacity: 0; pointer-events: none; }
+#loader h1 { font-family: var(--display); font-style: italic; font-weight: 400; font-size: clamp(88px, 31vw, 136px); line-height: 0.86; letter-spacing: -0.03em; margin-left: -5px; }
+#loader p:last-child { color: var(--paper-dim); font-size: 14px; }
+.loadtrack { height: 3px; margin-top: 26px; border-radius: 2px; background: rgba(255, 247, 234, 0.16); overflow: hidden; }
+.loadtrack i { display: block; height: 100%; background: var(--paper); transform-origin: left; transform: scaleX(0); transition: transform 0.25s; }
 #hurt { background: radial-gradient(ellipse 80% 65% at 50% 50%, rgba(255, 60, 40, 0) 45%, rgba(255, 60, 40, 0.75) 100%); opacity: 0; }
 .layer, .screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding-top: var(--sat); padding-bottom: var(--sab); padding-left: var(--gl); padding-right: var(--gr); box-sizing: border-box; }
 .layer, .pass { pointer-events: none; }
