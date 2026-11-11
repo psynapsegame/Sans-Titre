@@ -21,12 +21,15 @@ for (const m of [...css.matchAll(/url\((assets\/fonts\/[^)]+)\)/g)]) {
 const html = await readFile(at('index.html'), 'utf8');
 const app = html.slice(html.indexOf('<!--APP-->') + 10, html.indexOf('<!--/APP-->')).trim();
 const head = html.slice(html.indexOf('<meta charset'), html.indexOf('<link rel="stylesheet"')).trim();
-const script = (single) => `<script>window.__NUEE_SINGLE__=${single};${js.replace(/<\/script/g, '<\\/script')}</script>`;
+// modèles 3D intégrés au bundle : certains hôtes ne servent pas les fichiers .glb
+const models = {};
+for (const f of await readdir(at('assets/models'))) models[f.replace('.glb', '')] = (await readFile(at('assets/models', f))).toString('base64');
+const script = (single) => `<script>window.__NUEE_SINGLE__=${single};window.__NUEE_MODELS__=${JSON.stringify(models)};${js.replace(/<\/script/g, '<\\/script')}</script>`;
 
 await rm(at('dist'), { recursive: true, force: true });
 await mkdir(at('dist/assets'), { recursive: true });
 const files = [];
-for (const dir of ['tex', 'sky', 'models', 'ui']) {
+for (const dir of ['tex', 'sky', 'ui']) {
   await cp(at('assets', dir), at('dist/assets', dir), { recursive: true }).catch(() => {});
   for (const f of await readdir(at('assets', dir)).catch(() => [])) files.push(`assets/${dir}/${f}`);
 }

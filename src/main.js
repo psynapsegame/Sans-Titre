@@ -16,7 +16,13 @@ audio.on = save.sound;
 let screen = 'title', paused = false, current = null, hintTimer = 0, introTimer = 0;
 let dpr = Math.min(window.devicePixelRatio || 1, 2), slow = 0;
 
-const renderer = new Renderer3D(cv);
+let renderer;
+try { renderer = new Renderer3D(cv); } catch (err) {
+  // WebGL 2 indisponible : on le dit clairement plutôt que d'afficher un écran vide
+  console.error(err);
+  $('loadMsg').textContent = 'Ce navigateur ne prend pas en charge le rendu 3D (WebGL 2). Essaie avec une version récente de Chrome ou de Safari.';
+  throw err;
+}
 let ready = false;
 
 const game = new Game({

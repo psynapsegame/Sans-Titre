@@ -12,7 +12,7 @@ import { rng, clamp, lerp } from './util.js';
  * Repère local : X = x logique − VW/2, Y = altitude (plan de vol à 0), Z = y logique (la caméra regarde vers −Z).
  * Le monde défile vers la caméra ; la caméra reste fixe.
  */
-const HALF = VW / 2, WATER_Y = -175, RIM_Y = 7, BIRD_SCALE = 9.4;
+const HALF = VW / 2, WATER_Y = -175, RIM_Y = 7, BIRD_SCALE = 10.6;
 const MAX_BIRDS = 480, MAX_CLOUDS = 150, MAX_GLOW = 420, MAX_SEG = 360, MAX_RING = 48, MAX_STACK = 80, MAX_FEATHER = 48, MAX_DEBRIS = 200;
 
 /** Direction artistique par chapitre : ciel HDR, lumière, brume, eau, roche. */
@@ -87,6 +87,14 @@ export class Renderer3D {
     const tl = new THREE.TextureLoader(), gl = new GLTFLoader();
     const names = ['rock_face_diff', 'rock_face_nor', 'aerial_rocks_diff', 'aerial_rocks_nor', 'aerial_beach_diff', 'aerial_beach_nor', 'boulder_cracked_diff', 'water_nor'];
     const models = ['bird', 'falcon', 'feather', 'stack0', 'stack1', 'stack2'];
+    // version empaquetée : les modèles GLB sont intégrés au bundle (base64) ; sinon ils sont chargés depuis assets/
+    const packed = window.__NUEE_MODELS__;
+    const loadModel = (m) => {
+      if (!packed) return gl.loadAsync(`assets/models/${m}.glb`);
+      const bin = atob(packed[m]), buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      return gl.parseAsync(buf.buffer, '');
+    };
     let done = 0; const total = names.length + models.length + 3;
     const tick = () => onProgress && onProgress(++done / total);
     const aniso = Math.min(8, this.r.capabilities.getMaxAnisotropy());
@@ -99,7 +107,7 @@ export class Renderer3D {
       fetch('assets/sky/sky-info.json').then((r) => r.json()).then((j) => { this.skyInfo = j; }),
       tl.loadAsync('assets/tex/clouds.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; this.tex.clouds = t; tick(); }),
       tl.loadAsync('assets/tex/moon.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; this.tex.moon = t; tick(); }),
-      ...models.map((m) => gl.loadAsync(`assets/models/${m}.glb`).then((g) => {
+      ...models.map((m) => loadModel(m).then((g) => {
         let geo = null; g.scene.traverse((o) => { if (o.isMesh && !geo) geo = o.geometry; });
         this.geo[m] = geo; tick();
       })),
@@ -673,9 +681,10 @@ export class Renderer3D {
     const L = this.look;
     if (L.sunGlow) { const d = this.U.uSunDir.value, c = this._c || (this._c = new THREE.Color()); c.set(L.sunGlow.color); const el = THREE.MathUtils.degToRad(Math.min(L.sun.el, 9)); glow(d.x * 9000, Math.sin(el) * 9000, -9000 * Math.cos(el), L.sunGlow.size, c.r, c.g, c.b, L.sunGlow.power); }
 
-    // repère de la cible
+    // repère de la cible, et halo discret sous la nuée pour qu'elle se détache de la roche
     if (game.mode !== 'attract' && game.state === 'play') {
       const h = f.hold;
+      if (f.n) glow(f.cx - HALF, -6, f.cy, 150 + Math.sqrt(f.n) * 14, ac.r, ac.g, ac.b, 0.12);
       ring(f.tx - HALF, f.ty, lerp(34, 12, h), lerp(1.6, 2.4, h), h < 0.5 ? 14 : 0, 0, 1.6, 1.6, 1.6, lerp(0.35, 0.9, h), 14);
     }
     // oiseaux égarés : aura
