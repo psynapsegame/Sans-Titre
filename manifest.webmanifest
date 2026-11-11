@@ -1,0 +1,17 @@
+{
+  "name": "Nuée",
+  "short_name": "Nuée",
+  "description": "Guide une nuée d’oiseaux à travers cinq ciels. Un jeu à un doigt.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0c0920",
+  "theme_color": "#232a5c",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

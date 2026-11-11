@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Nuée</title>
+<meta name="description" content="Guide une nuée d’oiseaux à travers cinq ciels. Un jeu mobile à un doigt.">
+<meta name="theme-color" content="#232a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nuée">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--APP-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-bird" viewBox="0 0 24 24"><path d="M12 3 21 20l-9-4.500L3 20z" fill="currentColor"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24"><path d="M19 3c-8 0-13 5-13 12l-3 6 6-3c7 0 12-5 10-15z" fill="currentColor"/><path d="M5 19 16 7" stroke="rgba(60,30,0,.45)" stroke-width="1.3" fill="none"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2" fill="currentColor"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5 8 12l6.5 7" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.500-4H4z" fill="currentColor"/><path d="M15.500 9c1.300 1.800 1.300 4.200 0 6M18 6.500c2.600 3.300 2.600 7.700 0 11" stroke="currentColor" stroke-width="1.800" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.500-4H4z" fill="currentColor"/><path d="m15.500 9.500 5 5m0-5-5 5" stroke="currentColor" stroke-width="1.800" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.500" y="10.500" width="13" height="9.500" rx="2.500" fill="currentColor"/><path d="M8.500 10.500V8a3.500 3.500 0 0 1 7 0v2.500" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2.500 2.900 6.200 6.600.800-4.900 4.600 1.300 6.700L12 17.500l-5.900 3.300 1.300-6.700L2.500 9.500l6.600-.800z" fill="currentColor"/></symbol>
+</svg>
+
+<div id="stage">
+  <canvas id="c" aria-label="Zone de jeu"></canvas>
+
+  <div id="hud" class="layer" hidden>
+    <div class="hud-row">
+      <div class="pill"><svg><use href="#i-bird"/></svg><span id="hudBirds">0</span></div>
+      <div class="pill gold"><svg><use href="#i-feather"/></svg><span id="hudFeathers">0</span></div>
+      <span class="grow"></span>
+      <div class="pill plain" id="hudMeters" hidden></div>
+      <button class="round" id="btnPause" aria-label="Pause"><svg><use href="#i-pause"/></svg></button>
+    </div>
+    <div class="progress" id="progWrap"><i id="prog"></i></div>
+    <div id="intro" class="intro"><small id="introNum"></small><b id="introName"></b></div>
+  </div>
+  <div id="hint" class="hint"></div>
+
+  <section id="title" class="screen pass">
+    <div class="top-row">
+      <div class="pill gold"><svg><use href="#i-feather"/></svg><span id="tFeathers">0</span></div>
+      <div class="pill"><svg><use href="#i-star"/></svg><span id="tStars">0/60</span></div>
+      <span class="grow"></span>
+      <button class="round" id="btnSound" aria-label="Son"><svg><use id="soundUse" href="#i-sound"/></svg></button>
+    </div>
+    <div class="logo">
+      <p class="eyebrow">Un voyage de mille ailes</p>
+      <h1>Nuée</h1>
+      <p class="tag">Pose le doigt, la nuée se resserre.<br>Lâche, elle se disperse.</p>
+    </div>
+    <div class="title-actions">
+      <button class="cta" id="btnPlay"><span id="playLabel">Prendre l’envol</span><small id="playSub"></small></button>
+      <nav class="tabs">
+        <button id="btnMap">Voyage</button>
+        <button id="btnSkins">Plumages</button>
+        <button id="btnEndless"><svg id="endLock"><use href="#i-lock"/></svg>Sans fin</button>
+      </nav>
+    </div>
+  </section>
+
+  <section id="map" class="screen scrim" hidden>
+    <header class="bar"><button class="round" data-back aria-label="Retour"><svg><use href="#i-back"/></svg></button><h2>Le voyage</h2><span class="grow"></span><div class="pill"><svg><use href="#i-star"/></svg><span id="mStars">0/60</span></div></header>
+    <div class="scroll" id="chapters"></div>
+  </section>
+
+  <section id="skins" class="screen scrim" hidden>
+    <header class="bar"><button class="round" data-back aria-label="Retour"><svg><use href="#i-back"/></svg></button><h2>Plumages</h2><span class="grow"></span><div class="pill gold"><svg><use href="#i-feather"/></svg><span id="sFeathers">0</span></div></header>
+    <div class="scroll"><p class="lead">Les plumes dorées ramassées en vol habillent ta nuée.</p><div class="grid" id="skinGrid"></div></div>
+  </section>
+
+  <section id="pause" class="screen scrim soft center" hidden>
+    <div class="sheet">
+      <p class="eyebrow">Pause</p>
+      <h2 id="pauseName">—</h2>
+      <button class="cta" id="btnResume"><span>Reprendre</span></button>
+      <button class="ghost" id="btnRestart">Recommencer</button>
+      <button class="ghost" id="btnSound2">Son : activé</button>
+      <button class="ghost" id="btnQuit">Quitter le vol</button>
+    </div>
+  </section>
+
+  <section id="result" class="screen scrim soft center" hidden>
+    <div class="sheet">
+      <p class="eyebrow" id="rEyebrow"></p>
+      <h2 id="rTitle"></h2>
+      <div class="stars" id="rStars"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div>
+      <div class="big"><span id="rBig">0</span><small id="rUnit">oiseaux au refuge</small></div>
+      <ul class="stats" id="rStats"></ul>
+      <button class="cta" id="btnNext"><span id="nextLabel">Suivant</span></button>
+      <div class="row2"><button class="ghost" id="btnAgain">Rejouer</button><button class="ghost" id="btnToMap">Voyage</button></div>
+    </div>
+  </section>
+</div>
+<!--/APP-->
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
